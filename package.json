@@ -1,0 +1,10 @@
+{
+  "name": "Blockchain-Based-Hospital-Management-System",
+  "version": "1.0.0",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^22.19.19",
+    "hardhat": "^3.5.1",
+    "typescript": "~6.0.3"
+  }
+}

@@ -1,2 +1,7 @@
-# Blockchain-Based-Hospital-Management-System
-This project is developed by a group of students from the Faculty of Finance and Banking at the University of Economics and Law as part of our academic research and practical application in the field of Financial Technology and Blockchain.
+# Sample Hardhat 3 Beta Project (minimal)
+
+This project has a minimal setup of Hardhat 3 Beta, without any plugins.
+
+## What's included?
+
+The project includes native support for TypeScript, Hardhat scripts, tasks, and support for Solidity compilation and tests.
