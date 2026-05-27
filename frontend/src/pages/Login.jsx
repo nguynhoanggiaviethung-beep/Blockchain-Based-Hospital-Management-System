@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import logo from "../assets/logoVNMedID.png";
 
 const PRIMARY = "#0A2D6E";
 const PRIMARY_MED = "#1A4FA8";
@@ -339,19 +340,17 @@ export default function LoginPage() {
 
       {/* Left panel */}
       <div style={styles.left}>
-        <div style={styles.logoRow}>
-          <div style={styles.logoIcon}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L3 7v10l9 5 9-5V7L12 2z" stroke={PRIMARY} strokeWidth="2" strokeLinejoin="round"/>
-              <path d="M12 12v5M9.5 9.5l2.5 2.5 2.5-2.5M12 7v2" stroke={PRIMARY} strokeWidth="1.8" strokeLinecap="round"/>
-            </svg>
-          </div>
-          <div>
-            <div style={styles.logoText}>VNmedID</div>
-            <div style={styles.logoSub}>Hospital Management System</div>
-          </div>
-        </div>
-
+      <div style={styles.logoRow}>
+     <img 
+      src={logo}
+      alt="VNmedID Logo"
+      style={{ width: 44, height: 44, borderRadius: 10, objectFit: "contain" }}
+      />
+    <div>
+      <div style={styles.logoText}>VNmedID</div>
+      <div style={styles.logoSub}>Hospital Management System</div>
+    </div>
+  </div>
         <h1 style={styles.heroTitle}>
           Quản lý bệnh viện<br />
           thông minh & bảo mật
