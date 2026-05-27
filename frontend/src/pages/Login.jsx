@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const PRIMARY = "#0A2D6E";
 const PRIMARY_MED = "#1A4FA8";
@@ -301,6 +302,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
 
   const validate = () => {
     const e = {};
@@ -317,9 +319,15 @@ export default function LoginPage() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setErrors({});
     setLoading(true);
-    setTimeout(() => {
+   setTimeout(() => {
       setLoading(false);
       setSuccess(true);
+      const roleMap = {
+        "Bệnh nhân": "/dashboard/patient",
+        "Bác sĩ": "/dashboard/doctor",
+        "Admin": "/dashboard/admin",
+      };
+      setTimeout(() => navigate(roleMap[role]), 1000);
     }, 1800);
   };
 
