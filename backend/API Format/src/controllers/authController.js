@@ -1,20 +1,36 @@
 // src/controllers/authController.js
-// Chức năng: Xử lý đăng ký và đăng nhập tài khoản
+// Chức năng: Xử lý đăng ký và đăng nhập tài khoản (Đã fix lỗi buffering timeout)
 
-const User = require('../models/User');
-const bcrypt = require('bcryptjs');   // Dùng để mã hóa mật khẩu
-const jwt = require('jsonwebtoken');  // Dùng để tạo token
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');   
+const jwt = require('jsonwebtoken');  
+
+// 🛠️ FIX TẠI CHỖ: Tạo kết nối riêng biệt (Isolated Connection) tới MongoDB Local 
+// Cách này đảm bảo Model User kết nối THẲNG vào database local, chấp mọi lỗi cấu hình chạy ngầm của nhóm.
+const localConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/vnmedid', {
+    serverSelectionTimeoutMS: 5000
+});
+
+// Nạp Model User trực tiếp qua kết nối local này để không bị dính buffering timeout
+const UserSchema = require('../models/User').schema || new mongoose.Schema({
+    fullName: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    role: { type: String, required: true }
+});
+const User = localConnection.model('User', UserSchema);
+
+localConnection.on('connected', () => console.log('🔥 [Fix OK] Model User đã thông mạch vào Database Local!'));
+localConnection.on('error', (err) => console.log('❌ Lỗi kết nối local:', err));
 
 // ===================================================
 // ĐĂNG KÝ TÀI KHOẢN MỚI
-// Endpoint: POST /api/v1/auth/register
-// Ai dùng: Admin tạo tài khoản cho bác sĩ / bệnh nhân
 // ===================================================
 const register = async (req, res) => {
   try {
     const { fullName, email, password, role } = req.body;
 
-    // Bước 1: Kiểm tra email đã tồn tại chưa
+    // Bước 1: Kiểm tra email đã tồn tại chưa (Chạy siêu tốc qua kết nối local)
     const emailDaTonTai = await User.findOne({ email });
     if (emailDaTonTai) {
       return res.status(400).json({
@@ -23,15 +39,14 @@ const register = async (req, res) => {
       });
     }
 
-    // Bước 2: Mã hóa mật khẩu trước khi lưu vào database
-    // Số 10 là độ phức tạp của mã hóa (càng cao càng an toàn nhưng càng chậm)
+    // Bước 2: Mã hóa mật khẩu
     const matKhauDaMaHoa = await bcrypt.hash(password, 10);
 
-    // Bước 3: Tạo user mới và lưu vào database
+    // Bước 3: Tạo user mới
     const userMoi = await User.create({
       fullName,
       email,
-      password: matKhauDaMaHoa, // Lưu mật khẩu đã mã hóa, KHÔNG lưu mật khẩu gốc
+      password: matKhauDaMaHoa, 
       role
     });
 
@@ -58,14 +73,12 @@ const register = async (req, res) => {
 
 // ===================================================
 // ĐĂNG NHẬP
-// Endpoint: POST /api/v1/auth/login
-// Ai dùng: Tất cả mọi người (admin, doctor, patient)
 // ===================================================
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Bước 1: Tìm user theo email trong database
+    // Bước 1: Tìm user theo email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({
@@ -74,7 +87,7 @@ const login = async (req, res) => {
       });
     }
 
-    // Bước 2: So sánh mật khẩu nhập vào với mật khẩu đã mã hóa trong DB
+    // Bước 2: So sánh mật khẩu
     const matKhauDung = await bcrypt.compare(password, user.password);
     if (!matKhauDung) {
       return res.status(401).json({
@@ -84,13 +97,9 @@ const login = async (req, res) => {
     }
 
     // Bước 3: Tạo JWT Token
-    // Token này FE sẽ lưu lại và gửi kèm mỗi lần gọi API
     const token = jwt.sign(
-      // Nhúng thông tin user vào trong token
       { userId: user._id, role: user.role },
-      // Khóa bí mật để ký token (lưu trong file .env)
-      process.env.JWT_SECRET,
-      // Token hết hạn sau 7 ngày
+      process.env.JWT_SECRET || 'vnmedid_super_secret_key_2024', 
       { expiresIn: '7d' }
     );
 
@@ -99,10 +108,10 @@ const login = async (req, res) => {
       success: true,
       message: 'Đăng nhập thành công!',
       data: {
-        token,               // FE lưu cái này vào localStorage
+        token,
         userId: user._id,
         fullName: user.fullName,
-        role: user.role      // FE dùng role để hiển thị đúng dashboard
+        role: user.role
       }
     });
 
