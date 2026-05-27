@@ -1,27 +1,9 @@
 // src/controllers/authController.js
-// Chức năng: Xử lý đăng ký và đăng nhập tài khoản (Đã fix lỗi buffering timeout)
+// Chức năng: Xử lý đăng ký và đăng nhập tài khoản (Đồng bộ kết nối tổng)
 
-const mongoose = require('mongoose');
+const User = require('../models/User');
 const bcrypt = require('bcryptjs');   
 const jwt = require('jsonwebtoken');  
-
-// 🛠️ FIX TẠI CHỖ: Tạo kết nối riêng biệt (Isolated Connection) tới MongoDB Local 
-// Cách này đảm bảo Model User kết nối THẲNG vào database local, chấp mọi lỗi cấu hình chạy ngầm của nhóm.
-const localConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/vnmedid', {
-    serverSelectionTimeoutMS: 5000
-});
-
-// Nạp Model User trực tiếp qua kết nối local này để không bị dính buffering timeout
-const UserSchema = require('../models/User').schema || new mongoose.Schema({
-    fullName: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    role: { type: String, required: true }
-});
-const User = localConnection.model('User', UserSchema);
-
-localConnection.on('connected', () => console.log('🔥 [Fix OK] Model User đã thông mạch vào Database Local!'));
-localConnection.on('error', (err) => console.log('❌ Lỗi kết nối local:', err));
 
 // ===================================================
 // ĐĂNG KÝ TÀI KHOẢN MỚI
@@ -30,7 +12,7 @@ const register = async (req, res) => {
   try {
     const { fullName, email, password, role } = req.body;
 
-    // Bước 1: Kiểm tra email đã tồn tại chưa (Chạy siêu tốc qua kết nối local)
+    // Bước 1: Kiểm tra email đã tồn tại chưa
     const emailDaTonTai = await User.findOne({ email });
     if (emailDaTonTai) {
       return res.status(400).json({
