@@ -13,8 +13,10 @@ app.use('/api/v1/medical-records', require('./routes/medicalRecordRoutes'));
 app.use('/api/v1/invoices',        require('./routes/invoiceRoutes'));
 app.use('/api/v1/access',          require('./routes/accessRoutes'));
 app.use('/api/v1/payments', require('./routes/paymentRoutes'));
+app.use('/api/v1/auth', require('./routes/authRoutes'));
+
 // Kết nối MongoDB
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect('mongodb://127.0.0.1:27017/vnmedid')
   .then(() => {
     console.log('✅ MongoDB connected');
     app.listen(process.env.PORT, () => {
