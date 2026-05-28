@@ -19,9 +19,12 @@ const xacThucToken = (req, res, next) => {
     }
 
     try {
+        // 🔥 FIX TẠI CHỖ: Đồng bộ chìa khóa gốc của nhóm để tránh lỗi token không hợp lệ
+        const secretKey = process.env.JWT_SECRET || 'medical_blockchain_secret';
+        
         // Giải mã token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded; // Lưu thông tin user vào request
+        const decoded = jwt.verify(token, secretKey);
+        req.user = decoded; // Lưu thông tin user vào request (gồm userId và role)
         next(); // Cho đi tiếp
     } catch (error) {
         return res.status(401).json({
@@ -37,7 +40,8 @@ const xacThucToken = (req, res, next) => {
 // ==========================================
 const phanQuyen = (...roles) => {
     return (req, res, next) => {
-        if (!roles.includes(req.user.role)) {
+        // 🔥 FIX BẢO VỆ: Thêm dấu ? (req.user?.role) để lỡ req.user bị undefined thì không bị sập server
+        if (!req.user || !roles.includes(req.user?.role)) {
             return res.status(403).json({
                 success: false,
                 message: `Bạn không có quyền thực hiện chức năng này. Yêu cầu role: ${roles.join(', ')}`
