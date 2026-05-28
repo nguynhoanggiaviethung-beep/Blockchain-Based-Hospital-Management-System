@@ -1,6 +1,7 @@
 // src/controllers/authController.js
-// Chức năng: Xử lý đăng ký và đăng nhập tài khoản (Đồng bộ kết nối tổng)
+// Chức năng: Xử lý đăng ký và đăng nhập tài khoản
 
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');   
 const jwt = require('jsonwebtoken');  
@@ -10,6 +11,11 @@ const jwt = require('jsonwebtoken');
 // ===================================================
 const register = async (req, res) => {
   try {
+    // DEBUG: Kiểm tra trạng thái kết nối MongoDB
+    // 0 = mất kết nối, 1 = đã kết nối, 2 = đang kết nối
+    console.log('🔍 Trạng thái MongoDB:', mongoose.connection.readyState);
+    console.log('🔍 Tên database:', mongoose.connection.name);
+
     const { fullName, email, password, role } = req.body;
 
     // Bước 1: Kiểm tra email đã tồn tại chưa
@@ -58,6 +64,9 @@ const register = async (req, res) => {
 // ===================================================
 const login = async (req, res) => {
   try {
+    // DEBUG: Kiểm tra trạng thái kết nối MongoDB
+    console.log('🔍 Trạng thái MongoDB:', mongoose.connection.readyState);
+
     const { email, password } = req.body;
 
     // Bước 1: Tìm user theo email
