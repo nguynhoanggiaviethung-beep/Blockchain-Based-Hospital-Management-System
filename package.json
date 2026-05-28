@@ -1,5 +1,5 @@
 {
-  "name": "Blockchain-Based-Hospital-Management-System",
+  "name": "blockchain-hospital-system",
   "version": "1.0.0",
   "type": "module",
   "devDependencies": {
@@ -11,7 +11,7 @@
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.6.2"
+    "mongoose": "^9.6.2",
     "body-parser": "^2.2.2",
     "express": "^5.2.1"
   }
