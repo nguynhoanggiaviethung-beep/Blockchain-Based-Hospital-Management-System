@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import logo from "../assets/logoVNMedID.png";
+import RegisterPatientForm from "./RegisterPatientForm";
 
 const api = axios.create({
   baseURL: "http://localhost:5000/api/v1",
@@ -119,9 +120,9 @@ const styles = {
 
 const ROLES = ["Bệnh nhân", "Bác sĩ", "Admin"];
 const ROLE_ICONS = ["👤", "🩺", "🔑"];
-const ROLE_MAP_API = { "Bệnh nhân": "patient", "Bác sĩ": "doctor", "Admin": "admin" };
 
-export default function LoginPage() {
+const Login = () => {
+  const [isLogin, setIsLogin] = useState(true);
   const [role, setRole] = useState("Bác sĩ");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -143,30 +144,29 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
 
     setErrors({});
     setLoading(true);
 
     try {
-      // Gọi API đăng nhập
       const response = await api.post("/auth/login", { email, password });
       const { token, role: userRole } = response.data.data;
 
-      // Lưu token vào localStorage
       localStorage.setItem("token", token);
       localStorage.setItem("role", userRole);
 
       setSuccess(true);
 
-      // Chuyển hướng theo role trả về từ API
       const roleRedirect = {
         patient: "/dashboard/patient",
         doctor: "/dashboard/doctor",
         admin: "/dashboard/admin",
       };
       setTimeout(() => navigate(roleRedirect[userRole] || "/"), 1000);
-
     } catch (error) {
       const msg = error.response?.data?.message || "Đăng nhập thất bại, thử lại!";
       setErrors({ general: msg });
@@ -181,7 +181,6 @@ export default function LoginPage() {
       <div style={styles.bgCircle2} />
       <div style={styles.bgCircle3} />
 
-      {/* Left panel */}
       <div style={styles.left}>
         <div style={styles.logoRow}>
           <img
@@ -196,7 +195,7 @@ export default function LoginPage() {
         </div>
 
         <h1 style={styles.heroTitle}>
-          Quản lý bệnh viện<br />
+          Quản lý bệnh viện <br />
           thông minh & bảo mật
         </h1>
         <p style={styles.heroSub}>
@@ -218,12 +217,11 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right panel */}
       <div style={styles.right}>
         <div style={styles.card}>
           {success ? (
             <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
+              <div style={{ fontSize: 52, marginBottom: 16 }}> ✅ </div>
               <div style={{ fontSize: 20, fontWeight: 700, color: PRIMARY, marginBottom: 8 }}>
                 Đăng nhập thành công!
               </div>
@@ -231,12 +229,11 @@ export default function LoginPage() {
                 Chào mừng, đang chuyển hướng đến Dashboard...
               </div>
             </div>
-          ) : (
+          ) : isLogin ? (
             <>
               <div style={styles.cardTitle}>Đăng nhập</div>
-              <div style={styles.cardSub}>Chọn vai trò và nhập thông tin của bạn</div>
+              <div style={styles.cardSub}> Chọn vai trò và nhập thông tin của bạn </div>
 
-              {/* Role selector */}
               <div style={styles.roleRow}>
                 {ROLES.map((r, i) => (
                   <button key={r} style={styles.roleBtn(role === r)} onClick={() => setRole(r)}>
@@ -245,13 +242,12 @@ export default function LoginPage() {
                 ))}
               </div>
 
-              {/* Hiển thị lỗi từ API */}
               {errors.general && <div style={styles.errorBox}>{errors.general}</div>}
 
               <form onSubmit={handleSubmit} noValidate>
                 <label style={styles.label}>Email</label>
                 <div style={styles.inputWrapper}>
-                  <span style={styles.inputIcon}>✉</span>
+                  <span style={styles.inputIcon}> ✉ </span>
                   <input
                     type="email"
                     placeholder="example@hospital.vn"
@@ -262,7 +258,7 @@ export default function LoginPage() {
                 </div>
                 {errors.email && <div style={styles.errorText}>{errors.email}</div>}
 
-                <label style={styles.label}>Mật khẩu</label>
+                <label style={styles.label}> Mật khẩu </label>
                 <div style={styles.inputWrapper}>
                   <span style={styles.inputIcon}>🔒</span>
                   <input
@@ -279,7 +275,7 @@ export default function LoginPage() {
                 {errors.password && <div style={styles.errorText}>{errors.password}</div>}
 
                 <div style={styles.forgotRow}>
-                  <button type="button" style={styles.forgotLink}>Quên mật khẩu?</button>
+                  <button type="button" style={styles.forgotLink}> Quên mật khẩu? </button>
                 </div>
 
                 <button type="submit" style={styles.submitBtn(loading)} disabled={loading}>
@@ -289,7 +285,7 @@ export default function LoginPage() {
 
               <div style={styles.divider}>
                 <div style={styles.dividerLine} />
-                <span style={styles.dividerText}>hoặc</span>
+                <span style={styles.dividerText}> hoặc </span>
                 <div style={styles.dividerLine} />
               </div>
 
@@ -305,10 +301,34 @@ export default function LoginPage() {
                 Bằng cách đăng nhập, bạn đồng ý với{" "}
                 <span style={{ color: ACCENT, cursor: "pointer" }}>Điều khoản sử dụng</span>
               </div>
+              <div style={{ textAlign: "center", marginTop: "20px", fontSize: "14px" }}>
+                Chưa có tài khoản?{" "}
+                <span
+                  onClick={() => setIsLogin(false)}
+                  style={{ color: PRIMARY, cursor: "pointer", fontWeight: "bold", textDecoration: "underline" }}
+                >
+                  Đăng ký tài khoản bệnh nhân
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <RegisterPatientForm />
+              <div style={{ textAlign: "center", marginTop: "20px", fontSize: "14px" }}>
+                Đã có tài khoản bệnh nhân?{" "}
+                <span
+                  onClick={() => setIsLogin(true)}
+                  style={{ color: PRIMARY, cursor: "pointer", fontWeight: "bold", textDecoration: "underline" }}
+                >
+                  Quay lại Đăng nhập
+                </span>
+              </div>
             </>
           )}
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default Login;
