@@ -161,6 +161,7 @@ export default function Login() {
 
       localStorage.setItem("token", token);
       localStorage.setItem("userRole", userRole);
+      localStorage.setItem("fullName", response.data?.data?.fullName || "");
 
       setSuccess(true);
 
