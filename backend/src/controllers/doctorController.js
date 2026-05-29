@@ -1,6 +1,7 @@
 // API Format/src/controllers/doctorController.js
 const mongoose = require('mongoose');
 const Doctor = require('../models/doctor'); 
+const User = require('../models/User'); // 🔥 ĐÃ THÊM: Import Model User để Mongoose kiểm soát lưu vào bảng 'users'
 const bcrypt = require('bcrypt');
 
 /**
@@ -39,11 +40,11 @@ const createDoctor = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // 4. BƯỚC CHỐT: LƯU VÀO 2 BẢNG ĐỒNG THỜI BẰNG DRIVER GỐC
+        // 4. BƯỚC CHỐT: LƯU VÀO 2 BẢNG ĐỒNG THỜI BẰNG ID CHUNG
         const commonId = new mongoose.Types.ObjectId(); 
 
-        // Bước 4.1: Lưu trực tiếp vào collection 'users'
-        await db.collection('users').insertOne({
+        // Bước 4.1: Tạo tài khoản đăng nhập bên bảng 'users' bằng Model User
+        const newUser = new User({
             _id: commonId,
             fullName,
             email,
@@ -51,9 +52,10 @@ const createDoctor = async (req, res) => {
             role: 'doctor',
             walletAddress
         });
+        await newUser.save();
         console.log(`✅ Đã lưu tài khoản vào bảng users với ID: ${commonId}`);
 
-        // Bước 4.2: Lưu trực tiếp vào collection 'doctors'
+        // Bước 4.2: Lưu thông tin hồ sơ bên bảng 'doctors' bằng Native Driver (Tránh bẫy index cũ)
         await db.collection('doctors').insertOne({
             _id: commonId, 
             fullName,
@@ -63,7 +65,7 @@ const createDoctor = async (req, res) => {
         });
         console.log(`✅ Đã lưu hồ sơ vào bảng doctors với ID: ${commonId}`);
 
-        // 5. PHẢN HỒI THÀNH CÔNG
+        // 5. PHẢN HỒI THÀNH CÔNG (Đoạn này cũ của bạn bị thiếu)
         return res.status(201).json({ 
             success: true, 
             message: 'Tạo tài khoản và hồ sơ bác sĩ thành công!',
