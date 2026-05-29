@@ -9,4 +9,4 @@ const doctorSchema = new mongoose.Schema({
   password: { type: String, required: true }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Doctor', doctorSchema);
+module.exports = mongoose.model('Doctor', doctorSchema, 'doctors');

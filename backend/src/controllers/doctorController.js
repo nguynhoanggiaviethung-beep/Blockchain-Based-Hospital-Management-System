@@ -1,16 +1,17 @@
 // API Format/src/controllers/doctorController.js
-const Doctor = require('../models/doctor');
+const mongoose = require('mongoose');
+const Doctor = require('../models/doctor'); 
 const bcrypt = require('bcrypt');
 
 /**
- * @desc    Tạo hồ sơ bác sĩ mới (Phân quyền: Admin)
+ * @desc    Tạo hồ sơ bác sĩ mới (Gồm: Tạo tài khoản ở 'users' + Tạo hồ sơ ở 'doctors')
  * @route   POST /api/v1/doctors
  */
 const createDoctor = async (req, res) => {
     try {
         const { fullName, specialty, licenseNumber, walletAddress, email, password } = req.body;
 
-        // 1. KIỂM TRA ĐẦU VÀO: Đảm bảo không bỏ trống trường bắt buộc
+        // 1. KIỂM TRA ĐẦU VÀO
         if (!fullName || !licenseNumber || !email || !password) {
             return res.status(400).json({ 
                 success: false, 
@@ -18,49 +19,63 @@ const createDoctor = async (req, res) => {
             });
         }
 
-        // 2. KIỂM TRA TRÙNG LẶP: Quét DB xem Email hoặc Số giấy phép đã tồn tại chưa
-        const isDuplicate = await Doctor.findOne({
-            $or: [ { email }, { licenseNumber } ]
-        });
+        const db = mongoose.connection.db;
+        if (!db) {
+            return res.status(500).json({ success: false, message: 'Database chưa sẵn sàng!' });
+        }
 
-        if (isDuplicate) {
+        // 2. KIỂM TRA TRÙNG LẶP (Quét email bên bảng users và licenseNumber bên bảng doctors)
+        const isEmailExist = await db.collection('users').findOne({ email });
+        const isLicenseExist = await Doctor.findOne({ licenseNumber });
+
+        if (isEmailExist || isLicenseExist) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'Email hoặc Số giấy phép này đã được đăng ký trên hệ thống!' 
             });
         }
 
-        // 3. MÃ HÓA MẬT KHẨU: Chuẩn hóa băm an toàn 1 lớp
+        // 3. MÃ HÓA MẬT KHẨU
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // 4. KHỞI TẠO ĐỐI TƯỢNG: Gán giá trị sạch sẽ vào Model
-        const newDoctor = new Doctor({
+        // 4. BƯỚC CHỐT: LƯU VÀO 2 BẢNG ĐỒNG THỜI BẰNG DRIVER GỐC
+        const commonId = new mongoose.Types.ObjectId(); 
+
+        // Bước 4.1: Lưu trực tiếp vào collection 'users'
+        await db.collection('users').insertOne({
+            _id: commonId,
+            fullName,
+            email,
+            password: hashedPassword,
+            role: 'doctor',
+            walletAddress
+        });
+        console.log(`✅ Đã lưu tài khoản vào bảng users với ID: ${commonId}`);
+
+        // Bước 4.2: Lưu trực tiếp vào collection 'doctors'
+        await db.collection('doctors').insertOne({
+            _id: commonId, 
             fullName,
             specialty,
             licenseNumber,
-            walletAddress,
-            email,
-            password: hashedPassword,
-            role: 'doctor' // Đảm bảo gán cứng vai trò để phân quyền đăng nhập ngoài Web
+            walletAddress
         });
+        console.log(`✅ Đã lưu hồ sơ vào bảng doctors với ID: ${commonId}`);
 
-        // 5. LƯU XUỐNG DATABASE
-        await newDoctor.save();
-
-        // 6. PHẢN HỒI THÀNH CÔNG: Trả về kèm thông tin cơ bản để Front-end xử lý tiếp
+        // 5. PHẢN HỒI THÀNH CÔNG
         return res.status(201).json({ 
             success: true, 
-            message: 'Tạo hồ sơ bác sĩ thành công!',
+            message: 'Tạo tài khoản và hồ sơ bác sĩ thành công!',
             data: {
-                id: newDoctor._id,
-                fullName: newDoctor.fullName,
-                email: newDoctor.email
+                id: commonId,
+                fullName,
+                email
             }
         });
 
     } catch (error) {
-        // Bắt lỗi hệ thống hoặc lỗi kết nối DB
+        console.error("❌ Lỗi tại createDoctor:", error);
         return res.status(500).json({ 
             success: false, 
             message: 'Lỗi hệ thống khi tạo bác sĩ!', 
@@ -70,20 +85,22 @@ const createDoctor = async (req, res) => {
 };
 
 /**
- * @desc    Lấy chi tiết thông tin 1 bác sĩ bằng ID
+ * @desc    Lấy chi tiết thông tin 1 bác sĩ bằng ID tài khoản (userId từ token)
  * @route   GET /api/v1/doctors/:id
  */
 const getDoctorById = async (req, res) => {
     try {
         const { id } = req.params;
         
-        // Tìm và gạt bỏ password ra khỏi kết quả trả về để bảo mật
-        const doctor = await Doctor.findById(id).select('-password'); 
+        // Chuyển string ID nhận từ client về dạng ObjectId để tìm chính xác trong MongoDB
+        const objId = new mongoose.Types.ObjectId(id);
+        
+        const doctor = await Doctor.findById(objId); 
         
         if (!doctor) {
             return res.status(404).json({ 
                 success: false, 
-                message: 'Không tìm thấy thông tin bác sĩ yêu cầu!' 
+                message: 'Không tìm thấy thông tin hồ sơ của bác sĩ này!' 
             });
         }
         
@@ -101,7 +118,6 @@ const getDoctorById = async (req, res) => {
     }
 };
 
-// Xuất bản các hàm xử lý ra Router gác cổng
 module.exports = {
     createDoctor,
     getDoctorById

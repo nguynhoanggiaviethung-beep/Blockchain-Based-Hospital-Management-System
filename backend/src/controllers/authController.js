@@ -13,19 +13,20 @@ const login = async (req, res) => {
         if (!db) {
             return res.status(500).json({ success: false, message: 'Database chưa sẵn sàng!' });
         }
-
-        // Xác định bảng dữ liệu (collection) dựa vào vai trò chọn ngoài Frontend
-        let collectionName = 'users'; 
-        if (role === 'doctor') collectionName = 'doctors';
-        if (role === 'patient') collectionName = 'patients';
-
-        // Tìm tài khoản theo email
-        const user = await db.collection(collectionName).findOne({ email: email });
+        const user = await db.collection('users').findOne({ email: email });
 
         if (!user) {
             return res.status(401).json({
                 success: false,
-                message: `Tài khoản không tồn tại trong danh sách ${role}!`
+                message: 'Tài khoản không tồn tại trên hệ thống!'
+            });
+        }
+
+
+        if (user.role !== role) {
+            return res.status(403).json({
+                success: false,
+                message: `Tài khoản này không có quyền đăng nhập với tư cách ${role}!`
             });
         }
 
