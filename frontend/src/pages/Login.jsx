@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import logo from "../assets/logoVNMedID.png";
 
+// Cấu hình Axios kết nối trực tiếp đến Endpoint của Backend
 const api = axios.create({
   baseURL: "http://localhost:5000/api/v1",
 });
 
+// Bảng màu hệ thống định danh thương hiệu (Design Tokens)
 const PRIMARY = "#0A2D6E";
 const PRIMARY_MED = "#1A4FA8";
 const PRIMARY_LIGHT = "#E6F1FB";
@@ -114,14 +116,14 @@ const styles = {
     background: WHITE, color: "#374151", fontSize: 14, fontWeight: 500, cursor: "pointer",
     display: "flex", alignItems: "center", justifyContent: "center", gap: 10, transition: "background 0.15s",
   },
-  footer: { textAlign: "center", marginTop: 24, fontSize: 12, color: GRAY_TEXT },
+  footer: { fontSize: 12, textAlign: "center", marginTop: 24, color: GRAY_TEXT },
 };
 
 const ROLES = ["Bệnh nhân", "Bác sĩ", "Admin"];
 const ROLE_ICONS = ["👤", "🩺", "🔑"];
 const ROLE_MAP_API = { "Bệnh nhân": "patient", "Bác sĩ": "doctor", "Admin": "admin" };
 
-export default function LoginPage() {
+export default function Login() {
   const [role, setRole] = useState("Bác sĩ");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -149,17 +151,19 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Gọi API đăng nhập
-      const response = await api.post("/auth/login", { email, password });
-      const { token, role: userRole } = response.data.data;
+      const apiRole = ROLE_MAP_API[role];
+      const response = await api.post("/auth/login", { email, password, role: apiRole });
+      
+      const token = response.data?.data?.token || response.data?.token;
+      const userRole = response.data?.data?.role || response.data?.user?.role || apiRole;
 
-      // Lưu token vào localStorage
+      if (!token) throw new Error("Hệ thống không trả về Token xác thực!");
+
       localStorage.setItem("token", token);
-      localStorage.setItem("role", userRole);
+      localStorage.setItem("userRole", userRole);
 
       setSuccess(true);
 
-      // Chuyển hướng theo role trả về từ API
       const roleRedirect = {
         patient: "/dashboard/patient",
         doctor: "/dashboard/doctor",
@@ -168,7 +172,8 @@ export default function LoginPage() {
       setTimeout(() => navigate(roleRedirect[userRole] || "/"), 1000);
 
     } catch (error) {
-      const msg = error.response?.data?.message || "Đăng nhập thất bại, thử lại!";
+      console.error(error);
+      const msg = error.response?.data?.message || error.message || "Đăng nhập thất bại!";
       setErrors({ general: msg });
     } finally {
       setLoading(false);
@@ -181,29 +186,16 @@ export default function LoginPage() {
       <div style={styles.bgCircle2} />
       <div style={styles.bgCircle3} />
 
-      {/* Left panel */}
       <div style={styles.left}>
         <div style={styles.logoRow}>
-          <img
-            src={logo}
-            alt="VNmedID Logo"
-            style={{ width: 44, height: 44, borderRadius: 10, objectFit: "contain" }}
-          />
+          <img src={logo} alt="VNmedID Logo" style={{ width: 44, height: 44, borderRadius: 10, objectFit: "contain" }} />
           <div>
             <div style={styles.logoText}>VNmedID</div>
             <div style={styles.logoSub}>Hospital Management System</div>
           </div>
         </div>
-
-        <h1 style={styles.heroTitle}>
-          Quản lý bệnh viện<br />
-          thông minh & bảo mật
-        </h1>
-        <p style={styles.heroSub}>
-          Hệ thống tích hợp Blockchain đảm bảo tính minh bạch,
-          toàn vẹn dữ liệu bệnh nhân và quyền truy cập an toàn.
-        </p>
-
+        <h1 style={styles.heroTitle}>Quản lý bệnh viện<br />thông minh & bảo mật</h1>
+        <p style={styles.heroSub}>Hệ thống tích hợp Blockchain đảm bảo tính minh bạch, toàn vẹn dữ liệu bệnh nhân.</p>
         <div style={styles.featureList}>
           {[
             ["🔗", "Lưu trữ hồ sơ trên Blockchain"],
@@ -218,34 +210,34 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right panel */}
       <div style={styles.right}>
         <div style={styles.card}>
           {success ? (
             <div style={{ textAlign: "center", padding: "20px 0" }}>
               <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: PRIMARY, marginBottom: 8 }}>
-                Đăng nhập thành công!
-              </div>
-              <div style={{ fontSize: 14, color: GRAY_TEXT }}>
-                Chào mừng, đang chuyển hướng đến Dashboard...
-              </div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: PRIMARY, marginBottom: 8 }}>Đăng nhập thành công!</div>
+              <div style={{ fontSize: 14, color: GRAY_TEXT }}>Đang điều hướng đến Dashboard...</div>
             </div>
           ) : (
             <>
               <div style={styles.cardTitle}>Đăng nhập</div>
               <div style={styles.cardSub}>Chọn vai trò và nhập thông tin của bạn</div>
 
-              {/* Role selector */}
               <div style={styles.roleRow}>
-                {ROLES.map((r, i) => (
-                  <button key={r} style={styles.roleBtn(role === r)} onClick={() => setRole(r)}>
-                    {ROLE_ICONS[i]} {r}
-                  </button>
-                ))}
+                {ROLES.map((r, i) => {
+                  const isActive = role === r;
+                  return (
+                    <button 
+                      key={r} 
+                      style={styles.roleBtn(isActive)} 
+                      onClick={() => setRole(r)}
+                    >
+                      {ROLE_ICONS[i]} {r}
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Hiển thị lỗi từ API */}
               {errors.general && <div style={styles.errorBox}>{errors.general}</div>}
 
               <form onSubmit={handleSubmit} noValidate>
@@ -293,7 +285,7 @@ export default function LoginPage() {
                 <div style={styles.dividerLine} />
               </div>
 
-              <button style={styles.metaMaskBtn}>
+              <button type="button" style={styles.metaMaskBtn}>
                 <svg width="20" height="20" viewBox="0 0 35 33" fill="none">
                   <path d="M32.958 1L19.41 10.692l2.519-5.937L32.958 1z" fill="#E2761B" />
                   <path d="M2.025 1l13.435 9.784-2.4-5.937L2.025 1z" fill="#E4761B" />

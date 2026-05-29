@@ -1,8 +1,9 @@
 const express = require('express');
+const router = express.Router();
+const { xacThucToken, phanQuyen } = require('../middleware/authMiddleware');
 const { makePayment } = require('../controllers/invoiceController');
 
-const router = express.Router();
-
-router.post('/', makePayment);
+// Thanh toán — Patient
+router.post('/', xacThucToken, phanQuyen('patient'), makePayment);
 
 module.exports = router;
