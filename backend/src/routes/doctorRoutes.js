@@ -14,3 +14,11 @@ router.post('/', xacThucToken, phanQuyen('admin'), doctorController.createDoctor
 router.get('/:id', xacThucToken, phanQuyen('admin', 'doctor'), doctorController.getDoctorById);
 
 module.exports = router;
+// Lấy danh sách bác sĩ — Admin + Doctor
+router.get('/', xacThucToken, phanQuyen('admin', 'doctor'), doctorController.getAllDoctors);
+
+// Cập nhật bác sĩ — chỉ Admin
+router.put('/:id', xacThucToken, phanQuyen('admin'), doctorController.updateDoctor);
+
+// Xóa bác sĩ — chỉ Admin
+router.delete('/:id', xacThucToken, phanQuyen('admin'), doctorController.deleteDoctor);

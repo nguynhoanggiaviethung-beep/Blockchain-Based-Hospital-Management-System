@@ -119,8 +119,127 @@ const getDoctorById = async (req, res) => {
         });
     }
 };
+/**
+ * @desc    Lấy danh sách tất cả bác sĩ
+ * @route   GET /api/v1/doctors
+ */
+const getAllDoctors = async (req, res) => {
+    try {
+        const { search } = req.query;
+        let filter = {};
+
+        if (search) {
+            filter = {
+                $or: [
+                    { fullName: { $regex: search, $options: 'i' } },
+                    { specialty: { $regex: search, $options: 'i' } },
+                    { licenseNumber: { $regex: search, $options: 'i' } }
+                ]
+            };
+        }
+
+        const danhSach = await Doctor.find(filter).sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Lấy danh sách bác sĩ thành công',
+            data: {
+                total: danhSach.length,
+                doctors: danhSach
+            }
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi hệ thống',
+            error: error.message
+        });
+    }
+};
+
+/**
+ * @desc    Cập nhật thông tin bác sĩ
+ * @route   PUT /api/v1/doctors/:id
+ */
+const updateDoctor = async (req, res) => {
+    try {
+        const { fullName, specialty, walletAddress } = req.body;
+        const db = mongoose.connection.db;
+
+        // Cập nhật trong collection doctors
+        const bacSi = await Doctor.findByIdAndUpdate(
+            req.params.id,
+            { fullName, specialty, walletAddress },
+            { new: true, runValidators: true }
+        );
+
+        if (!bacSi) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy bác sĩ này!'
+            });
+        }
+
+        // Cập nhật fullName trong collection users (đồng bộ 2 bảng)
+        await db.collection('users').updateOne(
+            { _id: bacSi._id },
+            { $set: { fullName, walletAddress, updatedAt: new Date() } }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: 'Cập nhật thông tin bác sĩ thành công!',
+            data: bacSi
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi hệ thống',
+            error: error.message
+        });
+    }
+};
+
+/**
+ * @desc    Xóa bác sĩ (Xóa cả trong users và doctors)
+ * @route   DELETE /api/v1/doctors/:id
+ */
+const deleteDoctor = async (req, res) => {
+    try {
+        const db = mongoose.connection.db;
+
+        const bacSi = await Doctor.findByIdAndDelete(req.params.id);
+
+        if (!bacSi) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy bác sĩ này!'
+            });
+        }
+
+        // Xóa tài khoản trong collection users luôn
+        await db.collection('users').deleteOne({ _id: bacSi._id });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Xóa bác sĩ thành công!'
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi hệ thống',
+            error: error.message
+        });
+    }
+};
 
 module.exports = {
     createDoctor,
-    getDoctorById
+    getDoctorById,
+    getAllDoctors,
+    updateDoctor,
+    deleteDoctor
 };
