@@ -173,11 +173,47 @@ const deletePatient = async (req, res) => {
         });
     }
 };
+// ==========================================
+// PUT /api/v1/patients/:id/health-profile
+// Bệnh nhân tự cập nhật hồ sơ sức khỏe
+// ==========================================
+const capNhatHoSoSucKhoe = async (req, res) => {
+    try {
+        const { nhomMau, tienSuBenh, diUng, trieuChung, ghiChu } = req.body;
+
+        const benhNhan = await Patient.findByIdAndUpdate(
+            req.params.id,
+            { nhomMau, tienSuBenh, diUng, trieuChung, ghiChu },
+            { new: true }
+        );
+
+        if (!benhNhan) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy bệnh nhân!'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Cập nhật hồ sơ sức khỏe thành công!',
+            data: benhNhan
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi hệ thống',
+            error: error.message
+        });
+    }
+};
 
 module.exports = {
     createPatient,
     getAllPatients,
     getPatientById,
     updatePatient,
-    deletePatient
+    deletePatient,
+    capNhatHoSoSucKhoe
 };
