@@ -1,14 +1,24 @@
-// API Format/src/routes/medicalRecordRoutes.js
+// src/routes/medicalRecordRoutes.js
 const express = require('express');
 const router = express.Router();
-
 const { xacThucToken, phanQuyen } = require('../middleware/authMiddleware');
-const medicalRecordController = require('../controllers/medicalRecordController'); // Import nguyên Object
+const {
+    createMedicalRecord,
+    getMedicalRecordsByPatient,
+    getMedicalRecordById,
+    updateMedicalRecord
+} = require('../controllers/medicalRecordController');
 
-// Dòng 9: Gọi thông qua Object tổng
-router.post('/', xacThucToken, phanQuyen('doctor'), medicalRecordController.createRecord);
+// Tạo bệnh án — Doctor
+router.post('/', xacThucToken, phanQuyen('doctor'), createMedicalRecord);
 
-// Các dòng dưới cũng gọi tương tự
-router.get('/:id', xacThucToken, phanQuyen('admin', 'doctor', 'patient'), medicalRecordController.getRecordById);
+// Lấy tất cả bệnh án của bệnh nhân — Doctor + Patient + Admin
+router.get('/patient/:patientId', xacThucToken, phanQuyen('doctor', 'patient', 'admin'), getMedicalRecordsByPatient);
+
+// Xem chi tiết 1 bệnh án — Doctor + Patient + Admin
+router.get('/:id', xacThucToken, phanQuyen('doctor', 'patient', 'admin'), getMedicalRecordById);
+
+// Cập nhật bệnh án — Doctor
+router.put('/:id', xacThucToken, phanQuyen('doctor'), updateMedicalRecord);
 
 module.exports = router;
