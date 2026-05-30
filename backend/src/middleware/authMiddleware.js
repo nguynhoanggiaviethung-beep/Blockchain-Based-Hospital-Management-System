@@ -1,4 +1,4 @@
-// API Format/src/middleware/authMiddleware.js
+
 const jwt = require('jsonwebtoken');
 
 // 1. Middleware kiểm tra Login (Verify Token)
