@@ -57,14 +57,87 @@ const login = async (req, res) => {
     const token = jwt.sign({ userId: user._id, role }, secretKey, { expiresIn: '7d' });
 
     return res.status(200).json({
-      success: true,
-      message: 'Đăng nhập thành công!',
-      data: { token, role, fullName: user.fullName || 'Người dùng VNmedID' }
-    });
+    success: true,
+    message: 'Đăng nhập thành công!',
+    data: { 
+        token, 
+        role, 
+        fullName: user.fullName || 'Người dùng VNmedID',
+        userId: user._id  
+    }
+});
 
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
   }
 };
 
-module.exports = { register, login };
+const registerPatient = async (req, res) => {
+    try {
+        const { email, password, fullName, dob, gender, phone, address, citizenId } = req.body;
+
+        if (!email || !password || !fullName || !citizenId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Vui lòng điền đầy đủ thông tin bắt buộc!'
+            });
+        }
+
+        const db = mongoose.connection.db;
+
+        // Kiểm tra email đã tồn tại chưa
+        const emailDaTon = await db.collection('users').findOne({ email });
+        if (emailDaTon) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email này đã được đăng ký!'
+            });
+        }
+
+        // Kiểm tra CCCD đã tồn tại chưa
+        const cccdDaTon = await db.collection('patients').findOne({ citizenId });
+        if (cccdDaTon) {
+            return res.status(400).json({
+                success: false,
+                message: 'Số CCCD này đã được đăng ký!'
+            });
+        }
+
+        // Dùng chung 1 ID cho cả 2 bảng
+        const commonId = new mongoose.Types.ObjectId();
+        const matKhauMaHoa = await bcrypt.hash(password, 10);
+
+        // Lưu vào bảng users
+        await db.collection('users').insertOne({
+            _id: commonId,
+            fullName, email,
+            password: matKhauMaHoa,
+            role: 'patient',
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        // Lưu vào bảng patients
+        await db.collection('patients').insertOne({
+            _id: commonId,
+            fullName, dob, gender, phone, address, citizenId,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: 'Đăng ký tài khoản bệnh nhân thành công!',
+            data: { userId: commonId, fullName, email, role: 'patient' }
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi hệ thống',
+            error: error.message
+        });
+    }
+};
+
+module.exports = { register, login, registerPatient };

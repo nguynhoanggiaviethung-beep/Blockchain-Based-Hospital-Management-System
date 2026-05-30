@@ -5,7 +5,7 @@ const Patient = require('../models/Patient');
 
 // ==========================================
 // POST /api/v1/patients
-// Tạo bệnh nhân mới — chỉ Admin
+// Tạo bệnh nhân mới — admin + doctor + patient
 // ==========================================
 const createPatient = async (req, res) => {
     try {
@@ -111,7 +111,7 @@ const getPatientById = async (req, res) => {
 
 // ==========================================
 // PUT /api/v1/patients/:id
-// Cập nhật thông tin bệnh nhân — chỉ Admin
+// Cập nhật thông tin hành chính bệnh nhân — Admin + Doctor + Patient
 // ==========================================
 const updatePatient = async (req, res) => {
     try {
@@ -174,10 +174,103 @@ const deletePatient = async (req, res) => {
     }
 };
 
+// ==========================================
+// PUT /api/v1/patients/:id/health-profile
+// LUỒNG 1: Bệnh nhân tự cập nhật chỉ số sức khỏe cá nhân (Hoặc Admin nhập hộ)
+// ==========================================
+const capNhatHoSoSucKhoe = async (req, res) => {
+    try {
+        const { nhomMau, tienSuBenh, diUng, trieuChung, ghiChu } = req.body;
+
+        const benhNhan = await Patient.findByIdAndUpdate(
+            req.params.id,
+            { nhomMau, tienSuBenh, diUng, trieuChung, ghiChu },
+            { new: true }
+        );
+
+        if (!benhNhan) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy bệnh nhân!'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Cập nhật hồ sơ sức khỏe cá nhân thành công!',
+            data: benhNhan
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi hệ thống',
+            error: error.message
+        });
+    }
+};
+
+// ==========================================
+// PUT /api/v1/patients/:id/medical-assessment
+// LUỒNG 2: Bác sĩ cập nhật kết quả khám bệnh chuyên môn (Bệnh nhân chỉ được xem)
+// ==========================================
+const capNhatKhamBenhChuyenMon = async (req, res) => {
+    try {
+        const { chanDoanChuyenMon, ghiChuBacSi, huongDieuTri } = req.body;
+
+        if (!chanDoanChuyenMon) {
+            return res.status(400).json({
+                success: false,
+                message: 'Vui lòng nhập chẩn đoán chuyên môn của Bác sĩ!'
+            });
+        }
+
+        // Lưu thông tin chuyên môn vào trường medicalAssessment riêng biệt để không bị đè dữ liệu cũ
+        const benhNhan = await Patient.findByIdAndUpdate(
+            req.params.id,
+            {
+                $set: {
+                    medicalAssessment: {
+                        chanDoanChuyenMon,
+                        ghiChuBacSi,
+                        huongDieuTri,
+                        updatedBy: req.user ? req.user.id : null, // Lưu ID bác sĩ thực hiện từ Token
+                        updatedAt: new Date()
+                    }
+                }
+            },
+            { new: true }
+        );
+
+        if (!benhNhan) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy bệnh nhân để cập nhật hồ sơ chuyên môn!'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Bác sĩ cập nhật kết quả khám chuyên môn thành công!',
+            data: benhNhan
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi hệ thống khi cập nhật hồ sơ chuyên môn',
+            error: error.message
+        });
+    }
+};
+
+// Xuất bản toàn bộ các hàm ra ngoài để File Routes sử dụng
 module.exports = {
     createPatient,
     getAllPatients,
     getPatientById,
     updatePatient,
-    deletePatient
+    deletePatient,
+    capNhatHoSoSucKhoe,
+    capNhatKhamBenhChuyenMon // Đã được khai báo đầy đủ ở đây
 };
