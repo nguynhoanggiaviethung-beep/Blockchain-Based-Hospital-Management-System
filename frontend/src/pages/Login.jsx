@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import logo from "../assets/logoVNMedID.png";
+import RegisterPatientForm from "./RegisterPatientForm";
 
 // Cấu hình Axios kết nối trực tiếp đến Endpoint của Backend
 const api = axios.create({
@@ -121,9 +122,9 @@ const styles = {
 
 const ROLES = ["Bệnh nhân", "Bác sĩ", "Admin"];
 const ROLE_ICONS = ["👤", "🩺", "🔑"];
-const ROLE_MAP_API = { "Bệnh nhân": "patient", "Bác sĩ": "doctor", "Admin": "admin" };
 
-export default function Login() {
+const Login = () => {
+  const [isLogin, setIsLogin] = useState(true);
   const [role, setRole] = useState("Bác sĩ");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -145,20 +146,20 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
 
     setErrors({});
     setLoading(true);
 
     try {
-      const apiRole = ROLE_MAP_API[role];
-      const response = await api.post("/auth/login", { email, password, role: apiRole });
-      
-      const token = response.data?.data?.token || response.data?.token;
-      const userRole = response.data?.data?.role || response.data?.user?.role || apiRole;
+      // Gọi API đăng nhập
+      const response = await api.post("/auth/login", { email, password });
+      const { token, role: userRole } = response.data.data;
 
-      if (!token) throw new Error("Hệ thống không trả về Token xác thực!");
-
+      // Lưu token vào localStorage
       localStorage.setItem("token", token);
       localStorage.setItem("userRole", userRole);
       localStorage.setItem("fullName", response.data?.data?.fullName || "");
@@ -171,7 +172,6 @@ export default function Login() {
         admin: "/dashboard/admin",
       };
       setTimeout(() => navigate(roleRedirect[userRole] || "/"), 1000);
-
     } catch (error) {
       console.error(error);
       const msg = error.response?.data?.message || error.message || "Đăng nhập thất bại!";
@@ -195,8 +195,16 @@ export default function Login() {
             <div style={styles.logoSub}>Hospital Management System</div>
           </div>
         </div>
-        <h1 style={styles.heroTitle}>Quản lý bệnh viện<br />thông minh & bảo mật</h1>
-        <p style={styles.heroSub}>Hệ thống tích hợp Blockchain đảm bảo tính minh bạch, toàn vẹn dữ liệu bệnh nhân.</p>
+
+        <h1 style={styles.heroTitle}>
+          Quản lý bệnh viện<br />
+          thông minh & bảo mật
+        </h1>
+        <p style={styles.heroSub}>
+          Hệ thống tích hợp Blockchain đảm bảo tính minh bạch,
+          toàn vẹn dữ liệu bệnh nhân và quyền truy cập an toàn.
+        </p>
+
         <div style={styles.featureList}>
           {[
             ["🔗", "Lưu trữ hồ sơ trên Blockchain"],
@@ -216,13 +224,17 @@ export default function Login() {
           {success ? (
             <div style={{ textAlign: "center", padding: "20px 0" }}>
               <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: PRIMARY, marginBottom: 8 }}>Đăng nhập thành công!</div>
-              <div style={{ fontSize: 14, color: GRAY_TEXT }}>Đang điều hướng đến Dashboard...</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: PRIMARY, marginBottom: 8 }}>
+                Đăng nhập thành công!
+              </div>
+              <div style={{ fontSize: 14, color: GRAY_TEXT }}>
+                Chào mừng, đang chuyển hướng đến Dashboard...
+              </div>
             </div>
-          ) : (
+          ) : isLogin ? (
             <>
               <div style={styles.cardTitle}>Đăng nhập</div>
-              <div style={styles.cardSub}>Chọn vai trò và nhập thông tin của bạn</div>
+              <div style={styles.cardSub}> Chọn vai trò và nhập thông tin của bạn </div>
 
               <div style={styles.roleRow}>
                 {ROLES.map((r, i) => {
@@ -244,7 +256,7 @@ export default function Login() {
               <form onSubmit={handleSubmit} noValidate>
                 <label style={styles.label}>Email</label>
                 <div style={styles.inputWrapper}>
-                  <span style={styles.inputIcon}>✉</span>
+                  <span style={styles.inputIcon}> ✉ </span>
                   <input
                     type="email"
                     placeholder="example@hospital.vn"
@@ -255,7 +267,7 @@ export default function Login() {
                 </div>
                 {errors.email && <div style={styles.errorText}>{errors.email}</div>}
 
-                <label style={styles.label}>Mật khẩu</label>
+                <label style={styles.label}> Mật khẩu </label>
                 <div style={styles.inputWrapper}>
                   <span style={styles.inputIcon}>🔒</span>
                   <input
@@ -272,7 +284,7 @@ export default function Login() {
                 {errors.password && <div style={styles.errorText}>{errors.password}</div>}
 
                 <div style={styles.forgotRow}>
-                  <button type="button" style={styles.forgotLink}>Quên mật khẩu?</button>
+                  <button type="button" style={styles.forgotLink}> Quên mật khẩu? </button>
                 </div>
 
                 <button type="submit" style={styles.submitBtn(loading)} disabled={loading}>
@@ -282,7 +294,7 @@ export default function Login() {
 
               <div style={styles.divider}>
                 <div style={styles.dividerLine} />
-                <span style={styles.dividerText}>hoặc</span>
+                <span style={styles.dividerText}> hoặc </span>
                 <div style={styles.dividerLine} />
               </div>
 
@@ -298,10 +310,34 @@ export default function Login() {
                 Bằng cách đăng nhập, bạn đồng ý với{" "}
                 <span style={{ color: ACCENT, cursor: "pointer" }}>Điều khoản sử dụng</span>
               </div>
+              <div style={{ textAlign: "center", marginTop: "20px", fontSize: "14px" }}>
+                Chưa có tài khoản?{" "}
+                <span
+                  onClick={() => setIsLogin(false)}
+                  style={{ color: PRIMARY, cursor: "pointer", fontWeight: "bold", textDecoration: "underline" }}
+                >
+                  Đăng ký tài khoản bệnh nhân
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <RegisterPatientForm />
+              <div style={{ textAlign: "center", marginTop: "20px", fontSize: "14px" }}>
+                Đã có tài khoản bệnh nhân?{" "}
+                <span
+                  onClick={() => setIsLogin(true)}
+                  style={{ color: PRIMARY, cursor: "pointer", fontWeight: "bold", textDecoration: "underline" }}
+                >
+                  Quay lại Đăng nhập
+                </span>
+              </div>
             </>
           )}
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default Login;
