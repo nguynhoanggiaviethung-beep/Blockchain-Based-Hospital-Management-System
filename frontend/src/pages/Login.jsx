@@ -156,7 +156,10 @@ const Login = () => {
 
     try {
       // Gọi API đăng nhập
-      const response = await api.post("/auth/login", { email, password });
+     // Map role tiếng Việt sang tiếng Anh để gửi lên BE
+      const roleMap = { "Bệnh nhân": "patient", "Bác sĩ": "doctor", "Admin": "admin" };
+      const response = await api.post("/auth/login", { email, password, role: roleMap[role] });
+
       const { token, role: userRole } = response.data.data;
 
       // Lưu token vào localStorage
