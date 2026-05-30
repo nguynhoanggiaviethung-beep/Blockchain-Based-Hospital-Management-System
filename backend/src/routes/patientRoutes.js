@@ -8,26 +8,38 @@ const {
     getPatientById,
     updatePatient,
     deletePatient,
-    capNhatHoSoSucKhoe
+    capNhatHoSoSucKhoe,       // Hàm dành cho Bệnh nhân tự nhập chỉ số sức khỏe cá nhân
+    capNhatKhamBenhChuyenMon  // Hàm mới (bạn sẽ thêm vào Controller) dành cho Bác sĩ kết luận
 } = require('../controllers/patientController');
 
-// Tạo bệnh nhân mới — chỉ Admin
-router.post('/', xacThucToken, phanQuyen('admin'), createPatient);
+// [POST] Tạo bệnh nhân mới — admin + doctor + patient
+router.post('/', xacThucToken, phanQuyen('admin', 'doctor', 'patient'), createPatient);
 
-// Lấy danh sách bệnh nhân — Admin + Doctor
+// [GET] Lấy danh sách bệnh nhân — Admin + Doctor
 router.get('/', xacThucToken, phanQuyen('admin', 'doctor'), getAllPatients);
 
-// ⚠️ PHẢI ĐẶT TRƯỚC /:id — route cụ thể hơn lên trước
-// Cập nhật hồ sơ sức khỏe — Patient + Admin
+
+// --------------------------------------------------------------------------
+// 🩺 LUỒNG 1: THÔNG TIN SỨC KHỎE CÁ NHÂN (Chiều cao, cân nặng, dị ứng...)
+// Bệnh nhân tự quản lý hoặc Admin nhập hộ. Bác sĩ chỉ xem (thông qua lệnh GET /:id) chứ không sửa ở đây.
+// --------------------------------------------------------------------------
 router.put('/:id/health-profile', xacThucToken, phanQuyen('patient', 'admin'), capNhatHoSoSucKhoe);
 
-// Lấy 1 bệnh nhân theo ID — Admin + Doctor + Patient
+
+// --------------------------------------------------------------------------
+// 🩺 LUỒNG 2: HỒ SƠ KHÁM BỆNH CHUYÊN MÔN (Kết luận của bác sĩ sau khi khám)
+// Chỉ có Bác sĩ chuyên môn và Admin được cập nhật. Bệnh nhân CHỈ ĐƯỢC XEM, không được sửa.
+// --------------------------------------------------------------------------
+router.put('/:id/medical-assessment', xacThucToken, phanQuyen('doctor', 'admin'), capNhatKhamBenhChuyenMon);
+
+
+// [GET] Lấy 1 bệnh nhân theo ID — Admin + Doctor + Patient (Đoạn này thêm 'patient' để bệnh nhân tự xem hồ sơ của mình nhé)
 router.get('/:id', xacThucToken, phanQuyen('admin', 'doctor', 'patient'), getPatientById);
 
-// Cập nhật bệnh nhân — chỉ Admin + Doctor + patient
+// [PUT] Cập nhật thông tin hành chính bệnh nhân (Họ tên, SĐT, Địa chỉ...) — Admin + Doctor + Patient
 router.put('/:id', xacThucToken, phanQuyen('admin', 'doctor', 'patient'), updatePatient);
 
-// Xóa bệnh nhân — chỉ Admin
+// [DELETE] Xóa bệnh nhân — chỉ Admin
 router.delete('/:id', xacThucToken, phanQuyen('admin'), deletePatient);
 
 module.exports = router;
