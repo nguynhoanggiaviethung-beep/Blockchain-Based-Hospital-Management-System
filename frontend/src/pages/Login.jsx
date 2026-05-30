@@ -94,14 +94,10 @@ const styles = {
 
 const ROLES = ["Bệnh nhân", "Bác sĩ", "Admin"];
 const ROLE_ICONS = ["👤", "🩺", "🔑"];
+const ROLE_MAP_API = { "Bệnh nhân": "patient", "Bác sĩ": "doctor", "Admin": "admin" };
 
-<<<<<<< HEAD
 // ── FORM ĐĂNG NHẬP ──────────────────────────────
 function LoginForm() {
-=======
-const Login = () => {
-  const [isLogin, setIsLogin] = useState(true);
->>>>>>> 201fa14ff2610a61790246ab71982ff7e36f2add
   const [role, setRole] = useState("Bác sĩ");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -123,7 +119,6 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = validate();
-<<<<<<< HEAD
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setErrors({}); setLoading(true);
     try {
@@ -135,31 +130,7 @@ const Login = () => {
       localStorage.setItem("token", token);
       localStorage.setItem("userRole", userRole);
       localStorage.setItem("fullName", response.data?.data?.fullName || "");
-=======
-    if (Object.keys(errs).length) {
-      setErrors(errs);
-      return;
-    }
-
-    setErrors({});
-    setLoading(true);
-
-    try {
-      // Gọi API đăng nhập
-     // Map role tiếng Việt sang tiếng Anh để gửi lên BE
-      const roleMap = { "Bệnh nhân": "patient", "Bác sĩ": "doctor", "Admin": "admin" };
-      const response = await api.post("/auth/login", { email, password, role: roleMap[role] });
-
-      const { token, role: userRole } = response.data.data;
-
-      // Lưu token vào localStorage
-      localStorage.setItem("token", token);
-      localStorage.setItem("userRole", userRole);
-      localStorage.setItem("fullName", response.data?.data?.fullName || "");
       localStorage.setItem("userId", response.data?.data?.userId || "");
-      
-
->>>>>>> 201fa14ff2610a61790246ab71982ff7e36f2add
       setSuccess(true);
       const roleRedirect = { patient: "/dashboard/patient", doctor: "/dashboard/doctor", admin: "/dashboard/admin" };
       setTimeout(() => navigate(roleRedirect[userRole] || "/"), 1000);
@@ -300,8 +271,6 @@ function RegisterForm() {
       <div style={styles.cardSub}>Tạo tài khoản bệnh nhân mới</div>
       {errors.general && <div style={styles.errorBox}>{errors.general}</div>}
       <form onSubmit={handleSubmit} noValidate>
-
-        {/* Họ tên */}
         <label style={styles.label}>Họ và tên</label>
         <div style={styles.inputWrapper}>
           <input type="text" placeholder="Nguyễn Văn A" value={fullName}
@@ -310,7 +279,6 @@ function RegisterForm() {
         </div>
         {errors.fullName && <div style={styles.errorText}>{errors.fullName}</div>}
 
-        {/* Email */}
         <label style={styles.label}>Email</label>
         <div style={styles.inputWrapper}>
           <input type="email" placeholder="example@hospital.vn" value={email}
@@ -319,7 +287,6 @@ function RegisterForm() {
         </div>
         {errors.email && <div style={styles.errorText}>{errors.email}</div>}
 
-        {/* SĐT + CCCD */}
         <div style={styles.grid2}>
           <div>
             <label style={styles.label}>Số điện thoại</label>
@@ -341,7 +308,6 @@ function RegisterForm() {
           </div>
         </div>
 
-        {/* Ngày sinh + Giới tính */}
         <div style={styles.grid2}>
           <div>
             <label style={styles.label}>Ngày sinh</label>
@@ -368,7 +334,6 @@ function RegisterForm() {
           </div>
         </div>
 
-        {/* Mật khẩu */}
         <label style={styles.label}>Mật khẩu</label>
         <div style={styles.inputWrapper}>
           <input type={showPw ? "text" : "password"} placeholder="Tối thiểu 6 ký tự" value={password}
@@ -380,7 +345,6 @@ function RegisterForm() {
         </div>
         {errors.password && <div style={styles.errorText}>{errors.password}</div>}
 
-        {/* Xác nhận mật khẩu */}
         <label style={styles.label}>Xác nhận mật khẩu</label>
         <div style={styles.inputWrapper}>
           <input type={showCpw ? "text" : "password"} placeholder="Nhập lại mật khẩu" value={confirmPassword}
@@ -444,131 +408,13 @@ export default function Login() {
 
       <div style={styles.right}>
         <div style={styles.card}>
-<<<<<<< HEAD
           <div style={styles.tabRow}>
             <button style={styles.tabBtn(tab === "login")} onClick={() => setTab("login")}>🔑 Đăng nhập</button>
             <button style={styles.tabBtn(tab === "register")} onClick={() => setTab("register")}>📝 Đăng ký</button>
           </div>
           {tab === "login" ? <LoginForm /> : <RegisterForm />}
-=======
-          {success ? (
-            <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: PRIMARY, marginBottom: 8 }}>
-                Đăng nhập thành công!
-              </div>
-              <div style={{ fontSize: 14, color: GRAY_TEXT }}>
-                Chào mừng, đang chuyển hướng đến Dashboard...
-              </div>
-            </div>
-          ) : isLogin ? (
-            <>
-              <div style={styles.cardTitle}>Đăng nhập</div>
-              <div style={styles.cardSub}> Chọn vai trò và nhập thông tin của bạn </div>
-
-              <div style={styles.roleRow}>
-                {ROLES.map((r, i) => {
-                  const isActive = role === r;
-                  return (
-                    <button 
-                      key={r} 
-                      style={styles.roleBtn(isActive)} 
-                      onClick={() => setRole(r)}
-                    >
-                      {ROLE_ICONS[i]} {r}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {errors.general && <div style={styles.errorBox}>{errors.general}</div>}
-
-              <form onSubmit={handleSubmit} noValidate>
-                <label style={styles.label}>Email</label>
-                <div style={styles.inputWrapper}>
-                  <span style={styles.inputIcon}> ✉ </span>
-                  <input
-                    type="email"
-                    placeholder="example@hospital.vn"
-                    value={email}
-                    onChange={(e) => { setEmail(e.target.value); setErrors(ev => ({ ...ev, email: "" })); }}
-                    style={styles.input(!!errors.email)}
-                  />
-                </div>
-                {errors.email && <div style={styles.errorText}>{errors.email}</div>}
-
-                <label style={styles.label}> Mật khẩu </label>
-                <div style={styles.inputWrapper}>
-                  <span style={styles.inputIcon}>🔒</span>
-                  <input
-                    type={showPw ? "text" : "password"}
-                    placeholder="Nhập mật khẩu"
-                    value={password}
-                    onChange={(e) => { setPassword(e.target.value); setErrors(ev => ({ ...ev, password: "" })); }}
-                    style={styles.input(!!errors.password)}
-                  />
-                  <button type="button" style={styles.eyeBtn} onClick={() => setShowPw(v => !v)}>
-                    {showPw ? "🙈" : "👁"}
-                  </button>
-                </div>
-                {errors.password && <div style={styles.errorText}>{errors.password}</div>}
-
-                <div style={styles.forgotRow}>
-                  <button type="button" style={styles.forgotLink}> Quên mật khẩu? </button>
-                </div>
-
-                <button type="submit" style={styles.submitBtn(loading)} disabled={loading}>
-                  {loading ? "Đang xác thực..." : `Đăng nhập với tư cách ${role}`}
-                </button>
-              </form>
-
-              <div style={styles.divider}>
-                <div style={styles.dividerLine} />
-                <span style={styles.dividerText}> hoặc </span>
-                <div style={styles.dividerLine} />
-              </div>
-
-              <button type="button" style={styles.metaMaskBtn}>
-                <svg width="20" height="20" viewBox="0 0 35 33" fill="none">
-                  <path d="M32.958 1L19.41 10.692l2.519-5.937L32.958 1z" fill="#E2761B" />
-                  <path d="M2.025 1l13.435 9.784-2.4-5.937L2.025 1z" fill="#E4761B" />
-                </svg>
-                Kết nối ví MetaMask
-              </button>
-
-              <div style={styles.footer}>
-                Bằng cách đăng nhập, bạn đồng ý với{" "}
-                <span style={{ color: ACCENT, cursor: "pointer" }}>Điều khoản sử dụng</span>
-              </div>
-              <div style={{ textAlign: "center", marginTop: "20px", fontSize: "14px" }}>
-                Chưa có tài khoản?{" "}
-                <span
-                  onClick={() => setIsLogin(false)}
-                  style={{ color: PRIMARY, cursor: "pointer", fontWeight: "bold", textDecoration: "underline" }}
-                >
-                  Đăng ký tài khoản bệnh nhân
-                </span>
-              </div>
-            </>
-          ) : (
-            <>
-              <RegisterPatientForm />
-              <div style={{ textAlign: "center", marginTop: "20px", fontSize: "14px" }}>
-                Đã có tài khoản bệnh nhân?{" "}
-                <span
-                  onClick={() => setIsLogin(true)}
-                  style={{ color: PRIMARY, cursor: "pointer", fontWeight: "bold", textDecoration: "underline" }}
-                >
-                  Quay lại Đăng nhập
-                </span>
-              </div>
-            </>
-          )}
->>>>>>> 201fa14ff2610a61790246ab71982ff7e36f2add
         </div>
       </div>
     </div>
   );
-};
-
-export default Login;
+}
