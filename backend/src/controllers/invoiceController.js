@@ -54,3 +54,18 @@ exports.makePayment = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Lỗi hệ thống', error: error.message });
   }
 };
+// GET /invoices/patient/:patientId — Lấy hóa đơn của bệnh nhân
+exports.getInvoicesByPatient = async (req, res) => {
+  try {
+    const invoices = await Invoice.find({ patientId: req.params.patientId })
+        .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Lấy danh sách hóa đơn thành công!',
+      data: { total: invoices.length, invoices }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi hệ thống', error: error.message });
+  }
+};
