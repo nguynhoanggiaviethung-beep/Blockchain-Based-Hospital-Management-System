@@ -22,7 +22,8 @@ const RegisterPatientForm = () => {
     e.preventDefault();
     try {
       // Gọi API thật của Backend
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/auth/register-patient`, patientData);
+      const response = await axios.post(`http://localhost:5000/api/v1/auth/register-patient`, patientData);
+      
       if (response.data.success) {
         setStatusMessage('Đăng ký tài khoản bệnh nhân thành công!');
       }

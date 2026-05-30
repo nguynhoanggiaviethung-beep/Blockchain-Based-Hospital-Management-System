@@ -166,6 +166,8 @@ const Login = () => {
       localStorage.setItem("token", token);
       localStorage.setItem("userRole", userRole);
       localStorage.setItem("fullName", response.data?.data?.fullName || "");
+      localStorage.setItem("userId", response.data?.data?.userId || "");
+      
 
       setSuccess(true);
 

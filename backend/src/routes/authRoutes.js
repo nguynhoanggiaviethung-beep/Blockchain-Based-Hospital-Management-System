@@ -8,5 +8,6 @@ router.post('/register', authController.register);
 
 // POST /api/v1/auth/login -> Đăng nhập 
 router.post('/login', authController.login);
-
+// POST /api/v1/auth/register-patient -> Đăng ký bệnh nhân
+router.post('/register-patient', authController.registerPatient);
 module.exports = router;
