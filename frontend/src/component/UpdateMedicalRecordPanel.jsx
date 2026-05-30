@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 const PRIMARY = "#0A2D6E"
 const PRIMARY_LIGHT = "#E6F1FB"
@@ -6,7 +6,7 @@ const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 
 export default function UpdateMedicalRecordPanel({ onClose }) {
   const [form, setForm] = useState({
-    fullName: localStorage.getItem("fullName") || "",
+    fullName: "",
     dob: "",
     gender: "",
     phone: "",
@@ -17,7 +17,38 @@ export default function UpdateMedicalRecordPanel({ onClose }) {
     currentSymptoms: "",
   })
   const [loading, setLoading] = useState(false)
+  const [fetching, setFetching] = useState(true)
   const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    const fetchRecord = async () => {
+      try {
+        const token = localStorage.getItem("token")
+        const res = await fetch("http://localhost:5000/api/v1/patient/medical-record/my-record", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setForm({
+            fullName: data.fullName || localStorage.getItem("fullName") || "",
+            dob: data.dob ? data.dob.slice(0, 10) : "",
+            gender: data.gender || "",
+            phone: data.phone || "",
+            address: data.address || "",
+            bloodType: data.bloodType || "",
+            medicalHistory: data.medicalHistory || "",
+            drugAllergies: data.drugAllergies || "",
+            currentSymptoms: data.currentSymptoms || "",
+          })
+        }
+      } catch (err) {
+        console.error("Lỗi fetch hồ sơ:", err)
+      } finally {
+        setFetching(false)
+      }
+    }
+    fetchRecord()
+  }, [])
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
@@ -26,7 +57,7 @@ export default function UpdateMedicalRecordPanel({ onClose }) {
     setLoading(true)
     try {
       const token = localStorage.getItem("token")
-      await fetch("/api/patient/medical-record", {
+      const res = await fetch("http://localhost:5000/api/v1/patient/medical-record/my-record", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -34,8 +65,10 @@ export default function UpdateMedicalRecordPanel({ onClose }) {
         },
         body: JSON.stringify(form),
       })
-      setSuccess(true)
-      setTimeout(() => { setSuccess(false); onClose() }, 1800)
+      if (res.ok) {
+        setSuccess(true)
+        setTimeout(() => { setSuccess(false); onClose() }, 1800)
+      }
     } catch (err) {
       console.error(err)
     } finally {
@@ -59,6 +92,19 @@ export default function UpdateMedicalRecordPanel({ onClose }) {
     textTransform: "uppercase", letterSpacing: "0.08em",
     borderBottom: `2px solid ${PRIMARY_LIGHT}`,
     paddingBottom: 8, marginBottom: 16, marginTop: 8,
+  }
+
+  if (fetching) {
+    return (
+      <div style={{ textAlign: "center", padding: "48px 0", color: "#5F6B7A", fontSize: 14 }}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+          style={{ animation: "spin 0.8s linear infinite", marginBottom: 10, display: "block", margin: "0 auto 10px" }}>
+          <circle cx="12" cy="12" r="10" stroke="#C9D8EE" strokeWidth="4" />
+          <path d="M4 12a8 8 0 018-8" stroke={PRIMARY} strokeWidth="4" strokeLinecap="round" />
+        </svg>
+        Đang tải hồ sơ...
+      </div>
+    )
   }
 
   if (success) {

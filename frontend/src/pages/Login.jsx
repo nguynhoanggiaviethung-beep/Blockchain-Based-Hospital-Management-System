@@ -34,9 +34,8 @@ const styles = {
   featureItem: { display: "flex", alignItems: "center", gap: 14 },
   featureDot: { width: 36, height: 36, borderRadius: 8, background: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 },
   featureLabel: { fontSize: 14, color: "rgba(255,255,255,0.85)", fontWeight: 500 },
-  right: { width: 480, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 48px", position: "relative", zIndex: 1 },
+  right: { width: 480, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 48px", paddingTop: 60, position: "relative", zIndex: 1, overflowY: "auto" },
   card: { background: WHITE, borderRadius: 20, padding: "44px 40px", width: "100%", boxShadow: "0 24px 64px rgba(0,0,0,0.18)" },
-  // Tab switcher
   tabRow: { display: "flex", background: PRIMARY_LIGHT, borderRadius: 10, padding: 4, marginBottom: 24 },
   tabBtn: (active) => ({
     flex: 1, padding: "9px 0", borderRadius: 8, border: "none",
@@ -61,12 +60,12 @@ const styles = {
   input: (hasError) => ({
     width: "100%", padding: "11px 14px 11px 42px", borderRadius: 9,
     border: `1.5px solid ${hasError ? ERROR : BORDER}`, fontSize: 14, color: "#1a1a2e",
-    outline: "none", boxSizing: "border-box", transition: "border-color 0.18s", background: WHITE,
+    outline: "none", boxSizing: "border-box", background: WHITE,
   }),
-  inputNoIcon: (hasError) => ({
+  inputPlain: (hasError) => ({
     width: "100%", padding: "11px 14px", borderRadius: 9,
     border: `1.5px solid ${hasError ? ERROR : BORDER}`, fontSize: 14, color: "#1a1a2e",
-    outline: "none", boxSizing: "border-box", transition: "border-color 0.18s", background: WHITE,
+    outline: "none", boxSizing: "border-box", background: WHITE,
   }),
   inputIcon: { position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", color: GRAY_TEXT, fontSize: 16, pointerEvents: "none" },
   eyeBtn: { position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: GRAY_TEXT, fontSize: 16, padding: 0, lineHeight: 1 },
@@ -78,7 +77,7 @@ const styles = {
     width: "100%", padding: "13px 0", borderRadius: 10, border: "none",
     background: loading ? "#93B8E8" : `linear-gradient(90deg, ${PRIMARY} 0%, ${PRIMARY_MED} 100%)`,
     color: WHITE, fontSize: 15, fontWeight: 600,
-    cursor: loading ? "not-allowed" : "pointer", letterSpacing: 0.3, transition: "opacity 0.18s",
+    cursor: loading ? "not-allowed" : "pointer", letterSpacing: 0.3,
   }),
   divider: { display: "flex", alignItems: "center", gap: 12, margin: "20px 0" },
   dividerLine: { flex: 1, height: 1, background: BORDER },
@@ -86,7 +85,7 @@ const styles = {
   metaMaskBtn: {
     width: "100%", padding: "11px 0", borderRadius: 10, border: `1.5px solid ${BORDER}`,
     background: WHITE, color: "#374151", fontSize: 14, fontWeight: 500, cursor: "pointer",
-    display: "flex", alignItems: "center", justifyContent: "center", gap: 10, transition: "background 0.15s",
+    display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
   },
   footer: { fontSize: 12, textAlign: "center", marginTop: 20, color: GRAY_TEXT },
   grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 14px" },
@@ -208,30 +207,37 @@ function LoginForm() {
 
 // ── FORM ĐĂNG KÝ ────────────────────────────────
 function RegisterForm() {
-  const [form, setForm] = useState({ fullName: "", email: "", phone: "", cccd: "", dob: "", gender: "", password: "", confirmPassword: "" });
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [cccd, setCccd] = useState("");
+  const [dob, setDob] = useState("");
+  const [gender, setGender] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [showCpw, setShowCpw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState(false);
 
-  const handleChange = (e) => { setForm({ ...form, [e.target.name]: e.target.value }); setErrors(ev => ({ ...ev, [e.target.name]: "" })); };
+  const clearErr = (field) => setErrors(ev => ({ ...ev, [field]: "" }));
 
   const validate = () => {
     const e = {};
-    if (!form.fullName.trim()) e.fullName = "Vui lòng nhập họ tên";
-    if (!form.email) e.email = "Vui lòng nhập email";
-    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Email không hợp lệ";
-    if (!form.phone) e.phone = "Vui lòng nhập số điện thoại";
-    else if (!/^(0|\+84)[0-9]{9}$/.test(form.phone)) e.phone = "Số điện thoại không hợp lệ";
-    if (!form.cccd) e.cccd = "Vui lòng nhập CCCD";
-    else if (!/^[0-9]{12}$/.test(form.cccd)) e.cccd = "CCCD gồm 12 chữ số";
-    if (!form.dob) e.dob = "Vui lòng nhập ngày sinh";
-    if (!form.gender) e.gender = "Vui lòng chọn giới tính";
-    if (!form.password) e.password = "Vui lòng nhập mật khẩu";
-    else if (form.password.length < 6) e.password = "Mật khẩu tối thiểu 6 ký tự";
-    if (!form.confirmPassword) e.confirmPassword = "Vui lòng xác nhận mật khẩu";
-    else if (form.password !== form.confirmPassword) e.confirmPassword = "Mật khẩu không khớp";
+    if (!fullName.trim()) e.fullName = "Vui lòng nhập họ tên";
+    if (!email) e.email = "Vui lòng nhập email";
+    else if (!/\S+@\S+\.\S+/.test(email)) e.email = "Email không hợp lệ";
+    if (!phone) e.phone = "Vui lòng nhập số điện thoại";
+    else if (!/^(0|\+84)[0-9]{9}$/.test(phone)) e.phone = "Số điện thoại không hợp lệ";
+    if (!cccd) e.cccd = "Vui lòng nhập CCCD";
+    else if (!/^[0-9]{12}$/.test(cccd)) e.cccd = "CCCD gồm 12 chữ số";
+    if (!dob) e.dob = "Vui lòng nhập ngày sinh";
+    if (!gender) e.gender = "Vui lòng chọn giới tính";
+    if (!password) e.password = "Vui lòng nhập mật khẩu";
+    else if (password.length < 6) e.password = "Mật khẩu tối thiểu 6 ký tự";
+    if (!confirmPassword) e.confirmPassword = "Vui lòng xác nhận mật khẩu";
+    else if (password !== confirmPassword) e.confirmPassword = "Mật khẩu không khớp";
     return e;
   };
 
@@ -241,7 +247,7 @@ function RegisterForm() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setErrors({}); setLoading(true);
     try {
-      await api.post("/auth/register", { ...form, role: "patient" });
+      await api.post("/auth/register", { fullName, email, phone, cccd, dob, gender, password, role: "patient" });
       setSuccess(true);
     } catch (error) {
       const msg = error.response?.data?.message || error.message || "Đăng ký thất bại!";
@@ -257,33 +263,51 @@ function RegisterForm() {
     </div>
   );
 
-  const F = ({ name, label, placeholder, type = "text", error }) => (
-    <div>
-      <label style={styles.label}>{label}</label>
-      <div style={styles.inputWrapper}>
-        <input name={name} type={type} placeholder={placeholder} value={form[name]}
-          onChange={handleChange} style={{ ...styles.inputNoIcon(!!error), marginBottom: 0 }} />
-      </div>
-      {error && <div style={styles.errorText}>{error}</div>}
-    </div>
-  );
-
   return (
     <>
       <div style={styles.cardTitle}>Đăng ký</div>
       <div style={styles.cardSub}>Tạo tài khoản bệnh nhân mới</div>
       {errors.general && <div style={styles.errorBox}>{errors.general}</div>}
       <form onSubmit={handleSubmit} noValidate>
+
         {/* Họ tên */}
-        <F name="fullName" label="Họ và tên" placeholder="Nguyễn Văn A" error={errors.fullName} />
+        <label style={styles.label}>Họ và tên</label>
+        <div style={styles.inputWrapper}>
+          <input type="text" placeholder="Nguyễn Văn A" value={fullName}
+            onChange={(e) => { setFullName(e.target.value); clearErr("fullName"); }}
+            style={styles.inputPlain(!!errors.fullName)} />
+        </div>
+        {errors.fullName && <div style={styles.errorText}>{errors.fullName}</div>}
 
         {/* Email */}
-        <F name="email" label="Email" placeholder="example@hospital.vn" type="email" error={errors.email} />
+        <label style={styles.label}>Email</label>
+        <div style={styles.inputWrapper}>
+          <input type="email" placeholder="example@hospital.vn" value={email}
+            onChange={(e) => { setEmail(e.target.value); clearErr("email"); }}
+            style={styles.inputPlain(!!errors.email)} />
+        </div>
+        {errors.email && <div style={styles.errorText}>{errors.email}</div>}
 
         {/* SĐT + CCCD */}
         <div style={styles.grid2}>
-          <F name="phone" label="Số điện thoại" placeholder="0912 345 678" error={errors.phone} />
-          <F name="cccd" label="CCCD" placeholder="012345678901" error={errors.cccd} />
+          <div>
+            <label style={styles.label}>Số điện thoại</label>
+            <div style={styles.inputWrapper}>
+              <input type="text" placeholder="0912 345 678" value={phone}
+                onChange={(e) => { setPhone(e.target.value); clearErr("phone"); }}
+                style={styles.inputPlain(!!errors.phone)} />
+            </div>
+            {errors.phone && <div style={styles.errorText}>{errors.phone}</div>}
+          </div>
+          <div>
+            <label style={styles.label}>CCCD</label>
+            <div style={styles.inputWrapper}>
+              <input type="text" placeholder="012345678901" value={cccd}
+                onChange={(e) => { setCccd(e.target.value); clearErr("cccd"); }}
+                style={styles.inputPlain(!!errors.cccd)} />
+            </div>
+            {errors.cccd && <div style={styles.errorText}>{errors.cccd}</div>}
+          </div>
         </div>
 
         {/* Ngày sinh + Giới tính */}
@@ -291,16 +315,18 @@ function RegisterForm() {
           <div>
             <label style={styles.label}>Ngày sinh</label>
             <div style={styles.inputWrapper}>
-              <input name="dob" type="date" value={form.dob} onChange={handleChange}
-                style={{ ...styles.inputNoIcon(!!errors.dob), colorScheme: "light" }} />
+              <input type="date" value={dob}
+                onChange={(e) => { setDob(e.target.value); clearErr("dob"); }}
+                style={{ ...styles.inputPlain(!!errors.dob), colorScheme: "light" }} />
             </div>
             {errors.dob && <div style={styles.errorText}>{errors.dob}</div>}
           </div>
           <div>
             <label style={styles.label}>Giới tính</label>
             <div style={styles.inputWrapper}>
-              <select name="gender" value={form.gender} onChange={handleChange}
-                style={styles.inputNoIcon(!!errors.gender)}>
+              <select value={gender}
+                onChange={(e) => { setGender(e.target.value); clearErr("gender"); }}
+                style={styles.inputPlain(!!errors.gender)}>
                 <option value="">Chọn...</option>
                 <option value="male">Nam</option>
                 <option value="female">Nữ</option>
@@ -314,18 +340,24 @@ function RegisterForm() {
         {/* Mật khẩu */}
         <label style={styles.label}>Mật khẩu</label>
         <div style={styles.inputWrapper}>
-          <input name="password" type={showPw ? "text" : "password"} placeholder="Tối thiểu 6 ký tự"
-            value={form.password} onChange={handleChange} style={styles.inputNoIcon(!!errors.password)} />
-          <button type="button" style={styles.eyeBtn} onClick={() => setShowPw(v => !v)}>{showPw ? "🙈" : "👁"}</button>
+          <input type={showPw ? "text" : "password"} placeholder="Tối thiểu 6 ký tự" value={password}
+            onChange={(e) => { setPassword(e.target.value); clearErr("password"); }}
+            style={styles.inputPlain(!!errors.password)} />
+          <button type="button" style={styles.eyeBtn} onClick={() => setShowPw(v => !v)}>
+            {showPw ? "🙈" : "👁"}
+          </button>
         </div>
         {errors.password && <div style={styles.errorText}>{errors.password}</div>}
 
         {/* Xác nhận mật khẩu */}
         <label style={styles.label}>Xác nhận mật khẩu</label>
         <div style={styles.inputWrapper}>
-          <input name="confirmPassword" type={showCpw ? "text" : "password"} placeholder="Nhập lại mật khẩu"
-            value={form.confirmPassword} onChange={handleChange} style={styles.inputNoIcon(!!errors.confirmPassword)} />
-          <button type="button" style={styles.eyeBtn} onClick={() => setShowCpw(v => !v)}>{showCpw ? "🙈" : "👁"}</button>
+          <input type={showCpw ? "text" : "password"} placeholder="Nhập lại mật khẩu" value={confirmPassword}
+            onChange={(e) => { setConfirmPassword(e.target.value); clearErr("confirmPassword"); }}
+            style={styles.inputPlain(!!errors.confirmPassword)} />
+          <button type="button" style={styles.eyeBtn} onClick={() => setShowCpw(v => !v)}>
+            {showCpw ? "🙈" : "👁"}
+          </button>
         </div>
         {errors.confirmPassword && <div style={styles.errorText}>{errors.confirmPassword}</div>}
 
@@ -343,7 +375,7 @@ function RegisterForm() {
 
 // ── TRANG CHÍNH ──────────────────────────────────
 export default function Login() {
-  const [tab, setTab] = useState("login"); // "login" | "register"
+  const [tab, setTab] = useState("login");
 
   return (
     <div style={styles.page}>
@@ -351,7 +383,6 @@ export default function Login() {
       <div style={styles.bgCircle2} />
       <div style={styles.bgCircle3} />
 
-      {/* Left panel */}
       <div style={styles.left}>
         <div style={styles.logoRow}>
           <img src={logo} alt="VNmedID Logo" style={{ width: 44, height: 44, borderRadius: 10, objectFit: "contain" }} />
@@ -372,15 +403,12 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Right panel */}
-      <div style={{ ...styles.right, alignItems: "flex-start", paddingTop: 60, overflowY: "auto" }}>
+      <div style={styles.right}>
         <div style={styles.card}>
-          {/* Tab switcher */}
           <div style={styles.tabRow}>
             <button style={styles.tabBtn(tab === "login")} onClick={() => setTab("login")}>🔑 Đăng nhập</button>
             <button style={styles.tabBtn(tab === "register")} onClick={() => setTab("register")}>📝 Đăng ký</button>
           </div>
-
           {tab === "login" ? <LoginForm /> : <RegisterForm />}
         </div>
       </div>

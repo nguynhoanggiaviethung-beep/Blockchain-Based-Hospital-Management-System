@@ -10,5 +10,9 @@ router.post('/', xacThucToken, phanQuyen('doctor'), medicalRecordController.crea
 
 // Các dòng dưới cũng gọi tương tự
 router.get('/:id', xacThucToken, phanQuyen('admin', 'doctor', 'patient'), medicalRecordController.getRecordById);
+// Thêm route GET cho patient lấy hồ sơ của chính mình
+router.get('/my-record', xacThucToken, phanQuyen('patient'), medicalRecordController.getMyRecord);
 
+// Thêm route PUT để patient tự cập nhật
+router.put('/my-record', xacThucToken, phanQuyen('patient'), medicalRecordController.updateMyRecord);
 module.exports = router;
