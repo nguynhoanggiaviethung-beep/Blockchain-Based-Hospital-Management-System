@@ -23,6 +23,12 @@ export default function PatientDashboard() {
   const [saveSuccess, setSaveSuccess] = useState("")
   const [error, setError] = useState("")
 
+  const [historyList, setHistoryList] = useState([])
+  const [loadingHistory, setLoadingHistory] = useState(true)
+
+  // 🔥 THÊM STATE ĐỂ TƯƠNG TÁC: "all" (mặc định hiện hết), "luotKham" (chỉ hiện lượt khám), "donThuoc" (chỉ hiện đơn thuốc)
+  const [activeStatFilter, setActiveStatFilter] = useState("all")
+
   const [formBasic, setFormBasic] = useState({
     fullName: "", dob: "", gender: "", phone: "", address: ""
   })
@@ -36,7 +42,6 @@ export default function PatientDashboard() {
     "Authorization": `Bearer ${token}`
   }
 
-  // Load thông tin bệnh nhân
   useEffect(() => {
     const load = async () => {
       try {
@@ -61,21 +66,40 @@ export default function PatientDashboard() {
           })
         }
       } catch (err) {
-        console.log("Lỗi:", err)
+        console.log("Lỗi tải thông tin bệnh nhân:", err)
       } finally {
         setLoading(false)
       }
     }
-    if (userId) load()
-    else setLoading(false)
-  }, [])
+
+    const loadHistory = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/medical-records/my/history`, { headers })
+        const data = await res.json()
+        if (data.success) {
+          setHistoryList(data.data)
+        }
+      } catch (err) {
+        console.log("Lỗi tải lịch sử bệnh án:", err)
+      } finally {
+        setLoadingHistory(false)
+      }
+    }
+
+    if (userId) {
+      load()
+      loadHistory()
+    } else {
+      setLoading(false)
+      setLoadingHistory(false)
+    }
+  }, [userId])
 
   const showSuccess = (msg) => {
     setSaveSuccess(msg)
     setTimeout(() => setSaveSuccess(""), 3000)
   }
 
-  // Cập nhật thông tin cơ bản
   const handleSaveBasic = async () => {
     setSaving(true); setError("")
     try {
@@ -98,7 +122,6 @@ export default function PatientDashboard() {
     }
   }
 
-  // Cập nhật hồ sơ sức khỏe
   const handleSaveHealth = async () => {
     setSaving(true); setError("")
     try {
@@ -123,6 +146,16 @@ export default function PatientDashboard() {
 
   const handleLogout = () => { localStorage.clear(); navigate("/") }
 
+  // Hàm xử lý khi click vào ô thống kê để cuộn xuống xem nhanh
+  const handleStatCardClick = (filterType) => {
+    setActiveStatFilter(filterType)
+    setTab("info") // Đảm bảo luôn chuyển về tab info để xem danh sách lịch sử
+    const element = document.getElementById("medical-history-section")
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" })
+    }
+  }
+
   const inputStyle = {
     width: "100%", padding: "10px 14px", borderRadius: 8,
     border: `1.5px solid ${BORDER}`, fontSize: 14, outline: "none",
@@ -140,7 +173,7 @@ export default function PatientDashboard() {
   )
 
   const TABS = [
-    { key: "info", label: "📄 Thông tin" },
+    { key: "info", label: "📄 Thông tin & Lịch sử" },
     { key: "edit", label: "✏️ Cập nhật" },
     { key: "health", label: "🏥 Sức khỏe" },
   ]
@@ -162,22 +195,39 @@ export default function PatientDashboard() {
         {/* Greeting */}
         <div style={{ marginBottom: 28 }}>
           <h2 style={{ color: PRIMARY, margin: 0 }}>Xin chào, {fullName} 👋</h2>
-          <p style={{ color: GRAY_TEXT, marginTop: 4 }}>Đây là trang quản lý thông tin sức khỏe của bạn</p>
+          <p style={{ color: GRAY_TEXT, marginTop: 4 }}>Đây là trang quản lý thông tin sức khỏe và lịch sử khám bệnh của bạn</p>
         </div>
 
-        {/* Stat cards */}
+        {/* 🔥 Ô THỐNG KÊ CÓ TÍNH NĂNG TƯƠNG TÁC KHI CLICK */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, marginBottom: 32 }}>
           {[
-            { icon: "📋", label: "Lượt khám", value: "3" },
-            { icon: "💊", label: "Đơn thuốc", value: "2" },
-            { icon: "💳", label: "Hóa đơn chưa thanh toán", value: "1" },
-          ].map(card => (
-            <div key={card.label} style={{ background: WHITE, borderRadius: 14, padding: "24px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>{card.icon}</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: PRIMARY }}>{card.value}</div>
-              <div style={{ fontSize: 13, color: GRAY_TEXT, marginTop: 4 }}>{card.label}</div>
-            </div>
-          ))}
+            { id: "luotKham", icon: "📋", label: "Lượt khám", value: loadingHistory ? "..." : historyList.length },
+            { id: "donThuoc", icon: "💊", label: "Đơn thuốc", value: loadingHistory ? "..." : historyList.length },
+            { id: "hoaDon", icon: "💳", label: "Hóa đơn chưa thanh toán", value: "0" },
+          ].map(card => {
+            const isSelected = activeStatFilter === card.id;
+            return (
+              <div 
+                key={card.label} 
+                onClick={() => handleStatCardClick(card.id)} // Kích hoạt sự kiện bấm tương tác
+                style={{ 
+                  background: WHITE, 
+                  borderRadius: 14, 
+                  padding: "24px", 
+                  boxShadow: isSelected ? `0 0 0 2px ${PRIMARY_MED}, 0 4px 20px rgba(26,79,168,0.15)` : "0 2px 12px rgba(0,0,0,0.07)", 
+                  cursor: "pointer", // Thêm con trỏ bàn tay khi di chuột vào
+                  transition: "all 0.2s ease",
+                  transform: isSelected ? "scale(1.02)" : "scale(1)"
+                }}
+                onMouseEnter={(e) => { if(!isSelected) e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.12)" }}
+                onMouseLeave={(e) => { if(!isSelected) e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.07)" }}
+              >
+                <div style={{ fontSize: 32, marginBottom: 8 }}>{card.icon}</div>
+                <div style={{ fontSize: 28, fontWeight: 700, color: PRIMARY }}>{card.value}</div>
+                <div style={{ fontSize: 13, color: GRAY_TEXT, marginTop: 4 }}>{card.label}</div>
+              </div>
+            )
+          })}
         </div>
 
         {/* Card với 3 tab */}
@@ -185,7 +235,7 @@ export default function PatientDashboard() {
           {/* Tab buttons */}
           <div style={{ display: "flex", borderBottom: `1px solid ${BORDER}` }}>
             {TABS.map(({ key, label }) => (
-              <button key={key} onClick={() => { setTab(key); setError("") }} style={{
+              <button key={key} onClick={() => { setTab(key); setError(""); setActiveStatFilter("all"); }} style={{
                 padding: "14px 24px", border: "none", background: "none", cursor: "pointer",
                 fontSize: 14, fontWeight: tab === key ? 600 : 400,
                 color: tab === key ? PRIMARY : GRAY_TEXT,
@@ -226,12 +276,76 @@ export default function PatientDashboard() {
                   </div>
 
                   <h4 style={{ color: PRIMARY }}>Hồ sơ sức khỏe</h4>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
                     <Field label="Nhóm máu" value={patient?.nhomMau} />
                     <Field label="Dị ứng" value={patient?.diUng} />
                     <Field label="Tiền sử bệnh" value={patient?.tienSuBenh} />
                     <Field label="Triệu chứng" value={patient?.trieuChung} />
                     <Field label="Ghi chú" value={patient?.ghiChu} />
+                  </div>
+
+                  {/* 🔥 PHẦN LỊCH SỬ KHÁM CÓ ĐỊNH DANH ID ĐỂ TỰ ĐỘNG CUỘN XUỐNG KHI CLICK */}
+                  <div id="medical-history-section" style={{ borderTop: `1px solid ${BORDER}`, paddingTop: "20px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                      <h4 style={{ color: PRIMARY, margin: 0 }}>
+                        {activeStatFilter === "luotKham" && "📋 Chi tiết Lịch sử các ca khám bệnh"}
+                        {activeStatFilter === "donThuoc" && "💊 Chi tiết các Đơn thuốc điện tử"}
+                        {activeStatFilter === "hoaDon" && "💳 Chi tiết Hóa đơn dịch vụ"}
+                        {activeStatFilter === "all" && "📜 Toàn bộ Lịch sử ca khám & Đơn thuốc"}
+                      </h4>
+                      {activeStatFilter !== "all" && (
+                        <button 
+                          onClick={() => setActiveStatFilter("all")}
+                          style={{ background: PRIMARY_LIGHT, border: "none", color: PRIMARY, padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}
+                        >
+                          Hiển thị tất cả
+                        </button>
+                      )}
+                    </div>
+
+                    {loadingHistory ? (
+                      <div style={{ fontSize: 13, color: GRAY_TEXT }}>Đang đồng bộ bệnh án...</div>
+                    ) : historyList.length === 0 ? (
+                      <div style={{ background: "#F8FAFC", padding: "16px", borderRadius: 8, color: GRAY_TEXT, fontSize: 13, fontStyle: "italic", border: `1px solid ${BORDER}` }}>
+                        Bạn hiện tại chưa có lịch sử lượt khám nào được ghi nhận trên hệ thống VNmedID.
+                      </div>
+                    ) : activeStatFilter === "hoaDon" ? (
+                      <div style={{ background: "#F8FAFC", padding: "16px", borderRadius: 8, color: GRAY_TEXT, fontSize: 13, fontStyle: "italic", border: `1px solid ${BORDER}` }}>
+                        Bạn không có hóa đơn nào chưa thanh toán.
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                        {historyList.map((record, index) => (
+                          <div key={record._id || index} style={{ background: "#F8FAFC", borderRadius: 10, padding: "20px", border: `1px solid ${BORDER}` }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, borderBottom: `1px solid ${BORDER}`, paddingBottom: 8 }}>
+                              <span style={{ fontWeight: 700, color: PRIMARY }}>Ca bệnh khám số #{historyList.length - index}</span>
+                              <span style={{ fontSize: 13, color: GRAY_TEXT, fontWeight: 500 }}>
+                                🗓️ Ngày khám: {record.updatedAt ? new Date(record.updatedAt).toLocaleDateString('vi-VN') : "---"}
+                              </span>
+                            </div>
+                            
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, fontSize: 14 }}>
+                              <div><strong>Bác sĩ chuyên môn phụ trách:</strong> {record.doctorId?.fullName ? `BS. ${record.doctorId.fullName}` : "Bác sĩ bệnh viện"}</div>
+                              
+                              {/* 📋 Nếu filter là "all" hoặc "luotKham" -> Hiển thị Chẩn đoán chuyên môn */}
+                              {(activeStatFilter === "all" || activeStatFilter === "luotKham") && (
+                                <div style={{ marginTop: 4 }}>
+                                  <strong>Kết luận / Chẩn đoán lâm sàng:</strong> <span style={{ color: "#0A2D6E", fontWeight: 600 }}>{record.chanDoanChuyenMon || "Chưa có kết luận"}</span>
+                                </div>
+                              )}
+                              
+                              {/* 💊 Nếu filter là "all" hoặc "donThuoc" -> Hiển thị Đơn thuốc chi tiết */}
+                              {(activeStatFilter === "all" || activeStatFilter === "donThuoc") && (
+                                <div style={{ whiteSpace: "pre-wrap", background: "#FFFFFF", padding: "12px", borderRadius: 6, border: `1px solid ${BORDER}`, marginTop: 6, fontSize: 13, color: "#1E293B" }}>
+                                  <strong style={{ color: "#1A4FA8" }}>💊 Chi tiết hướng điều trị & Đơn thuốc:</strong><br />
+                                  {record.huongDieuTri || "Không có đơn thuốc chỉ định"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </>
               )

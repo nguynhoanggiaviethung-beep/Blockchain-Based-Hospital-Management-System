@@ -5,13 +5,33 @@ const MedicalRecord = require('../models/MedicalRecord');
 // 1. Hàm tạo bệnh án mới (Giữ nguyên của bạn)
 const createRecord = async (req, res) => {
     try {
-        // Code xử lý tạo bệnh án của bạn...
-        return res.status(201).json({ success: true, message: "Tạo bệnh án thành công" });
+        // Lấy triệu chứng từ body gửi lên, và lấy patientId của bệnh nhân đang đăng nhập từ token
+        const { trieuChung } = req.body;
+        const patientId = req.userId; // Middleware xacThucToken giải mã gán vào đây
+
+        if (!trieuChung) {
+            return res.status(400).json({ success: false, message: "Vui lòng nhập triệu chứng bệnh ban đầu!" });
+        }
+
+        // Tạo một bản ghi khám bệnh mới với trạng thái "Pending" (Chờ bác sĩ khám)
+        const newRecord = new MedicalRecord({
+            patientId,           // Liên kết trực tiếp với ID tài khoản bệnh nhân thật
+            trieuChung,          // Lưu triệu chứng lâm sàng ban đầu
+            status: "Pending",   // Đánh dấu trạng thái là Đang chờ khám
+            createdAt: new Date()
+        });
+
+        await newRecord.save();
+
+        return res.status(201).json({ 
+            success: true, 
+            message: "Đăng ký ca khám bệnh thành công! Vui lòng đợi bác sĩ gọi tên.",
+            data: newRecord 
+        });
     } catch (error) {
         return res.status(500).json({ success: false, error: error.message });
     }
 };
-
 // 🔥 2. THÊM MỚI: Hàm lấy danh sách bệnh nhân THẬT đang chờ khám (Hiện ra bảng của Bác sĩ)
 const getPendingRecords = async (req, res) => {
     try {

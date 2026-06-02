@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import logo from "../assets/logoVNMedID.png";
 import RegisterPatientForm from "./RegisterPatientForm";
+import { mapBackendToFrontend } from '../utils/doctorMapper.js';
 
 // Cấu hình Axios kết nối trực tiếp đến Endpoint của Backend
 const api = axios.create({
@@ -155,19 +156,30 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Gọi API đăng nhập
-     // Map role tiếng Việt sang tiếng Anh để gửi lên BE
+      // 1. Map role tiếng Việt sang tiếng Anh để gửi lên BE
       const roleMap = { "Bệnh nhân": "patient", "Bác sĩ": "doctor", "Admin": "admin" };
       const response = await api.post("/auth/login", { email, password, role: roleMap[role] });
-
+      
       const { token, role: userRole } = response.data.data;
+      const userData = response.data.data;
 
-      // Lưu token vào localStorage
+      // 2. Lưu token và thông tin nhận diện cốt lõi
       localStorage.setItem("token", token);
       localStorage.setItem("userRole", userRole);
-      localStorage.setItem("fullName", response.data?.data?.fullName || "");
-      localStorage.setItem("userId", response.data?.data?.userId || "");
-      
+      localStorage.setItem("userId", userData?.userId || userData?._id || "");
+
+      // 3. Phân tách bốc và lưu dữ liệu động chuẩn chỉnh theo vai trò
+      if (userRole === "doctor") {
+        const doctor = mapBackendToFrontend(userData);
+        if (doctor) {
+          localStorage.setItem("fullName", doctor.fullName);
+          localStorage.setItem("chuyenKhoa", doctor.specialty);
+          localStorage.setItem("maBacSi", doctor.licenseNumber); // Lưu 12 số định danh chuẩn luật mới
+        }
+      } else {
+        // Nếu là bệnh nhân hoặc admin, lưu tên từ các key thông dụng
+        localStorage.setItem("fullName", userData?.fullName || userData?.["Họ và tên"] || "");
+      }
 
       setSuccess(true);
 
@@ -176,6 +188,7 @@ const Login = () => {
         doctor: "/dashboard/doctor",
         admin: "/dashboard/admin",
       };
+      
       setTimeout(() => navigate(roleRedirect[userRole] || "/"), 1000);
     } catch (error) {
       console.error(error);
