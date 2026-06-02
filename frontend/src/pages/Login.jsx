@@ -4,10 +4,12 @@ import axios from "axios";
 import logo from "../assets/logoVNMedID.png";
 import RegisterPatientForm from "./RegisterPatientForm";
 
+// Cấu hình Axios kết nối trực tiếp đến Endpoint của Backend
 const api = axios.create({
   baseURL: "http://localhost:5000/api/v1",
 });
 
+// Bảng màu hệ thống định danh thương hiệu (Design Tokens)
 const PRIMARY = "#0A2D6E";
 const PRIMARY_MED = "#1A4FA8";
 const PRIMARY_LIGHT = "#E6F1FB";
@@ -115,7 +117,7 @@ const styles = {
     background: WHITE, color: "#374151", fontSize: 14, fontWeight: 500, cursor: "pointer",
     display: "flex", alignItems: "center", justifyContent: "center", gap: 10, transition: "background 0.15s",
   },
-  footer: { textAlign: "center", marginTop: 24, fontSize: 12, color: GRAY_TEXT },
+  footer: { fontSize: 12, textAlign: "center", marginTop: 24, color: GRAY_TEXT },
 };
 
 const ROLES = ["Bệnh nhân", "Bác sĩ", "Admin"];
@@ -153,11 +155,19 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await api.post("/auth/login", { email, password });
+      // Gọi API đăng nhập
+     // Map role tiếng Việt sang tiếng Anh để gửi lên BE
+      const roleMap = { "Bệnh nhân": "patient", "Bác sĩ": "doctor", "Admin": "admin" };
+      const response = await api.post("/auth/login", { email, password, role: roleMap[role] });
+
       const { token, role: userRole } = response.data.data;
 
+      // Lưu token vào localStorage
       localStorage.setItem("token", token);
-      localStorage.setItem("role", userRole);
+      localStorage.setItem("userRole", userRole);
+      localStorage.setItem("fullName", response.data?.data?.fullName || "");
+      localStorage.setItem("userId", response.data?.data?.userId || "");
+      
 
       setSuccess(true);
 
@@ -168,7 +178,8 @@ const Login = () => {
       };
       setTimeout(() => navigate(roleRedirect[userRole] || "/"), 1000);
     } catch (error) {
-      const msg = error.response?.data?.message || "Đăng nhập thất bại, thử lại!";
+      console.error(error);
+      const msg = error.response?.data?.message || error.message || "Đăng nhập thất bại!";
       setErrors({ general: msg });
     } finally {
       setLoading(false);
@@ -183,11 +194,7 @@ const Login = () => {
 
       <div style={styles.left}>
         <div style={styles.logoRow}>
-          <img
-            src={logo}
-            alt="VNmedID Logo"
-            style={{ width: 44, height: 44, borderRadius: 10, objectFit: "contain" }}
-          />
+          <img src={logo} alt="VNmedID Logo" style={{ width: 44, height: 44, borderRadius: 10, objectFit: "contain" }} />
           <div>
             <div style={styles.logoText}>VNmedID</div>
             <div style={styles.logoSub}>Hospital Management System</div>
@@ -195,7 +202,7 @@ const Login = () => {
         </div>
 
         <h1 style={styles.heroTitle}>
-          Quản lý bệnh viện <br />
+          Quản lý bệnh viện<br />
           thông minh & bảo mật
         </h1>
         <p style={styles.heroSub}>
@@ -221,7 +228,7 @@ const Login = () => {
         <div style={styles.card}>
           {success ? (
             <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <div style={{ fontSize: 52, marginBottom: 16 }}> ✅ </div>
+              <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: PRIMARY, marginBottom: 8 }}>
                 Đăng nhập thành công!
               </div>
@@ -235,11 +242,18 @@ const Login = () => {
               <div style={styles.cardSub}> Chọn vai trò và nhập thông tin của bạn </div>
 
               <div style={styles.roleRow}>
-                {ROLES.map((r, i) => (
-                  <button key={r} style={styles.roleBtn(role === r)} onClick={() => setRole(r)}>
-                    {ROLE_ICONS[i]} {r}
-                  </button>
-                ))}
+                {ROLES.map((r, i) => {
+                  const isActive = role === r;
+                  return (
+                    <button 
+                      key={r} 
+                      style={styles.roleBtn(isActive)} 
+                      onClick={() => setRole(r)}
+                    >
+                      {ROLE_ICONS[i]} {r}
+                    </button>
+                  );
+                })}
               </div>
 
               {errors.general && <div style={styles.errorBox}>{errors.general}</div>}
@@ -289,7 +303,7 @@ const Login = () => {
                 <div style={styles.dividerLine} />
               </div>
 
-              <button style={styles.metaMaskBtn}>
+              <button type="button" style={styles.metaMaskBtn}>
                 <svg width="20" height="20" viewBox="0 0 35 33" fill="none">
                   <path d="M32.958 1L19.41 10.692l2.519-5.937L32.958 1z" fill="#E2761B" />
                   <path d="M2.025 1l13.435 9.784-2.4-5.937L2.025 1z" fill="#E4761B" />

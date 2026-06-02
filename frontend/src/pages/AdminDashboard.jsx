@@ -7,21 +7,33 @@ const PRIMARY_LIGHT = "#E6F1FB"
 export default function AdminDashboard() {
   const navigate = useNavigate()
 
+  const fullName = localStorage.getItem("fullName") || "Quản trị viên"
+
+  const handleLogout = () => {
+    localStorage.clear()
+    navigate("/")
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "#F4F7FB", fontFamily: "'Segoe UI', Arial, sans-serif" }}>
+      {/* Header */}
       <div style={{ background: PRIMARY, color: "#fff", padding: "14px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontWeight: 700, fontSize: 18 }}>🏥 VNmedID — Admin</div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <span style={{ fontSize: 14 }}>🔑 Quản trị viên</span>
-          <button onClick={() => navigate("/")} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "6px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13 }}>
+          <span style={{ fontSize: 14 }}>🔑 {fullName}</span>
+          <button
+            onClick={handleLogout}
+            style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "6px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13 }}
+          >
             Đăng xuất
           </button>
         </div>
       </div>
 
       <div style={{ padding: "32px" }}>
+        {/* Tiêu đề */}
         <div style={{ marginBottom: 28 }}>
-          <h2 style={{ color: PRIMARY, margin: 0 }}>Tổng quan hệ thống 🔑</h2>
+          <h2 style={{ color: PRIMARY, margin: 0 }}>Xin chào, {fullName} 🔑</h2>
           <p style={{ color: "#5F6B7A", marginTop: 4 }}>Quản lý toàn bộ người dùng và phân quyền</p>
         </div>
 

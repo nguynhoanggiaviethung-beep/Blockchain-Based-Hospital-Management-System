@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
+// Khai báo Base URL đồng bộ với các file khác trong team
+const BASE_URL = "http://localhost:5000/api/v1";
+
 const DoctorExamination = () => {
   const { patientId } = useParams();
   const navigate = useNavigate();
@@ -18,7 +21,8 @@ const DoctorExamination = () => {
   useEffect(() => {
     const fetchPatientData = async () => {
       try {
-        const response = await fetch(`/api/patients/${patientId}`, {
+        // Đã sửa lại đường dẫn có chứa BASE_URL
+        const response = await fetch(`${BASE_URL}/patients/${patientId}`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
         const result = await response.json();
@@ -44,7 +48,8 @@ const DoctorExamination = () => {
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`/api/medical-records/${patientId}`, {
+      // Đã sửa lại đường dẫn có chứa BASE_URL
+      const response = await fetch(`${BASE_URL}/medical-records/${patientId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
