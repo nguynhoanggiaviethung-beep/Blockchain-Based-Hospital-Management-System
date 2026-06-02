@@ -6,19 +6,22 @@ const {
     createMedicalRecord,
     getMedicalRecordsByPatient,
     getMedicalRecordById,
-    updateMedicalRecord
+    updateMedicalRecord,
+    getMyRecord,
+    updateMyRecord,
 } = require('../controllers/medicalRecordController');
 
 // Tạo bệnh án — Doctor
 router.post('/', xacThucToken, phanQuyen('doctor'), createMedicalRecord);
 
+// ✅ PHẢI để trước /:id để không bị conflict
+router.get('/my-record', xacThucToken, phanQuyen('patient'), getMyRecord);
+router.put('/my-record', xacThucToken, phanQuyen('patient'), updateMyRecord);
+
 // Lấy tất cả bệnh án của bệnh nhân — Doctor + Patient + Admin
 router.get('/patient/:patientId', xacThucToken, phanQuyen('doctor', 'patient', 'admin'), getMedicalRecordsByPatient);
 
-// Xem chi tiết 1 bệnh án — Doctor + Patient + Admin
-router.get('/:id', xacThucToken, phanQuyen('doctor', 'patient', 'admin'), getMedicalRecordById);
-
-// Cập nhật bệnh án — Doctor
-router.put('/:id', xacThucToken, phanQuyen('doctor'), updateMedicalRecord);
+// Lấy bệnh án theo ID
+router.get('/:id', xacThucToken, phanQuyen('admin', 'doctor', 'patient'), getMedicalRecordById);
 
 module.exports = router;
