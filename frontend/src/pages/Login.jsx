@@ -249,7 +249,7 @@ function RegisterForm() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setErrors({}); setLoading(true);
     try {
-      await api.post("/auth/register", { fullName, email, phone, cccd, dob, gender, password, role: "patient" });
+      await api.post("/auth/register", { fullName, email, phone, citizenId: cccd, dob, gender, password, role: "patient" });
       setSuccess(true);
     } catch (error) {
       const msg = error.response?.data?.message || error.message || "Đăng ký thất bại!";

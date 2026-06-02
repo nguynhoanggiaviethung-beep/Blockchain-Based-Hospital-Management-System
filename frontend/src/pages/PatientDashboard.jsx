@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react'
 import HealthProfilePanel from '../components/HealthProfilePanel'
 
 const PRIMARY = "#0A2D6E"
+const PRIMARY_MED = "#1A4FA8"
 const PRIMARY_LIGHT = "#E6F1FB"
-const BLOOD_TYPES_COLOR = { "A+": "#FCA5A5", "A-": "#FCA5A5", "B+": "#93C5FD", "B-": "#93C5FD", "AB+": "#C4B5FD", "AB-": "#C4B5FD", "O+": "#6EE7B7", "O-": "#6EE7B7" }
 
 export default function PatientDashboard() {
   const navigate = useNavigate()
@@ -40,7 +40,6 @@ export default function PatientDashboard() {
     else setLoading(false)
   }, [])
 
-  // Sau khi đóng panel, fetch lại để cập nhật UI
   const handlePanelClose = () => {
     setShowHealthPanel(false)
     layThongTin()
@@ -104,17 +103,13 @@ export default function PatientDashboard() {
           )}
         </div>
 
-        {/* Hồ sơ sức khỏe */}
-        <div style={{ background: "#fff", borderRadius: 14, padding: "24px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
+        {/* Hồ sơ sức khỏe cá nhân — bệnh nhân tự cập nhật */}
+        <div style={{ background: "#fff", borderRadius: 14, padding: "24px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <h3 style={{ color: PRIMARY, margin: 0 }}>🩺 Hồ sơ sức khỏe cá nhân</h3>
             <button
               onClick={() => setShowHealthPanel(true)}
-              style={{
-                background: PRIMARY, color: "#fff", border: "none",
-                padding: "8px 18px", borderRadius: 8, fontSize: 13,
-                fontWeight: 600, cursor: "pointer",
-              }}
+              style={{ background: PRIMARY, color: "#fff", border: "none", padding: "8px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
             >
               ✏️ Cập nhật
             </button>
@@ -124,36 +119,26 @@ export default function PatientDashboard() {
             <div style={{ textAlign: 'center', padding: 20, color: '#5F6B7A' }}>Đang tải...</div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              {/* Nhóm máu */}
               <div style={{ background: PRIMARY_LIGHT, borderRadius: 8, padding: "12px 16px" }}>
                 <div style={{ fontSize: 12, color: "#5F6B7A" }}>🩸 Nhóm máu</div>
                 <div style={{ marginTop: 4 }}>
-                  {patient?.nhomMau ? (
-                    <span style={{
-                      fontWeight: 700, fontSize: 16, color: "#fff",
-                      background: PRIMARY, padding: "3px 12px", borderRadius: 6,
-                    }}>{patient.nhomMau}</span>
-                  ) : <span style={{ color: "#9CA3AF", fontSize: 13 }}>Chưa cập nhật</span>}
+                  {patient?.nhomMau
+                    ? <span style={{ fontWeight: 700, fontSize: 16, color: "#fff", background: PRIMARY, padding: "3px 12px", borderRadius: 6 }}>{patient.nhomMau}</span>
+                    : <span style={{ color: "#9CA3AF", fontSize: 13 }}>Chưa cập nhật</span>}
                 </div>
               </div>
 
-              {/* Dị ứng */}
               <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 8, padding: "12px 16px" }}>
                 <div style={{ fontSize: 12, color: "#92400E" }}>⚠ Dị ứng thuốc</div>
                 <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
-                  {patient?.diUng ? (
-                    patient.diUng.split(",").map(d => d.trim()).filter(Boolean).map((d, i) => (
-                      <span key={i} style={{
-                        background: "#FEF3C7", border: "1px solid #FCD34D",
-                        color: "#92400E", borderRadius: 5, padding: "2px 8px",
-                        fontSize: 12, fontWeight: 600,
-                      }}>💊 {d}</span>
-                    ))
-                  ) : <span style={{ color: "#9CA3AF", fontSize: 13 }}>Không có</span>}
+                  {patient?.diUng
+                    ? patient.diUng.split(",").map(d => d.trim()).filter(Boolean).map((d, i) => (
+                        <span key={i} style={{ background: "#FEF3C7", border: "1px solid #FCD34D", color: "#92400E", borderRadius: 5, padding: "2px 8px", fontSize: 12, fontWeight: 600 }}>💊 {d}</span>
+                      ))
+                    : <span style={{ color: "#9CA3AF", fontSize: 13 }}>Không có</span>}
                 </div>
               </div>
 
-              {/* Tiền sử bệnh */}
               <div style={{ background: PRIMARY_LIGHT, borderRadius: 8, padding: "12px 16px" }}>
                 <div style={{ fontSize: 12, color: "#5F6B7A" }}>📋 Tiền sử bệnh</div>
                 <div style={{ fontWeight: 500, color: PRIMARY, marginTop: 2, fontSize: 13 }}>
@@ -161,7 +146,6 @@ export default function PatientDashboard() {
                 </div>
               </div>
 
-              {/* Triệu chứng */}
               <div style={{ background: PRIMARY_LIGHT, borderRadius: 8, padding: "12px 16px" }}>
                 <div style={{ fontSize: 12, color: "#5F6B7A" }}>🌡 Triệu chứng hiện tại</div>
                 <div style={{ fontWeight: 500, color: PRIMARY, marginTop: 2, fontSize: 13 }}>
@@ -169,8 +153,7 @@ export default function PatientDashboard() {
                 </div>
               </div>
 
-              {/* Ghi chú */}
-              {(patient?.ghiChu) && (
+              {patient?.ghiChu && (
                 <div style={{ gridColumn: "1 / -1", background: PRIMARY_LIGHT, borderRadius: 8, padding: "12px 16px" }}>
                   <div style={{ fontSize: 12, color: "#5F6B7A" }}>📝 Ghi chú</div>
                   <div style={{ fontWeight: 500, color: PRIMARY, marginTop: 2, fontSize: 13 }}>{patient.ghiChu}</div>
@@ -179,28 +162,81 @@ export default function PatientDashboard() {
             </div>
           )}
         </div>
+
+        {/* KẾT QUẢ CHẨN ĐOÁN TỪ BÁC SĨ — chỉ đọc */}
+        <div style={{ background: "#fff", borderRadius: 14, padding: "24px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+            <h3 style={{ color: PRIMARY, margin: 0 }}>🔬 Kết quả chẩn đoán từ bác sĩ</h3>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#6B7280", background: "#F3F4F6", border: "1px solid #E5E7EB", padding: "2px 10px", borderRadius: 20 }}>
+              🔒 Chỉ xem
+            </span>
+          </div>
+
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: 20, color: '#5F6B7A' }}>Đang tải...</div>
+          ) : patient?.medicalAssessment?.chanDoanChuyenMon ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+              {/* Chẩn đoán */}
+              <div style={{ background: "#EFF6FF", border: "1.5px solid #BFDBFE", borderRadius: 10, padding: "14px 18px" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#1D4ED8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                  🔬 Chẩn đoán chuyên môn
+                </div>
+                <div style={{ fontSize: 14, color: "#1E3A5F", fontWeight: 600 }}>
+                  {patient.medicalAssessment.chanDoanChuyenMon}
+                </div>
+              </div>
+
+              {/* Hướng điều trị */}
+              {patient.medicalAssessment.huongDieuTri && (
+                <div style={{ background: "#F0FDF4", border: "1.5px solid #BBF7D0", borderRadius: 10, padding: "14px 18px" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#15803D", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                    💊 Hướng điều trị
+                  </div>
+                  <div style={{ fontSize: 14, color: "#14532D", fontWeight: 500 }}>
+                    {patient.medicalAssessment.huongDieuTri}
+                  </div>
+                </div>
+              )}
+
+              {/* Ghi chú bác sĩ */}
+              {patient.medicalAssessment.ghiChuBacSi && (
+                <div style={{ background: "#FFFBEB", border: "1.5px solid #FDE68A", borderRadius: 10, padding: "14px 18px" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#B45309", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                    📝 Ghi chú của bác sĩ
+                  </div>
+                  <div style={{ fontSize: 14, color: "#78350F", fontWeight: 500 }}>
+                    {patient.medicalAssessment.ghiChuBacSi}
+                  </div>
+                </div>
+              )}
+
+              {/* Thời gian */}
+              {patient.medicalAssessment.updatedAt && (
+                <div style={{ fontSize: 12, color: "#9CA3AF", textAlign: "right" }}>
+                  🕐 Cập nhật lúc: {new Date(patient.medicalAssessment.updatedAt).toLocaleString("vi-VN")}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ textAlign: "center", padding: "32px 0", color: "#9CA3AF", fontSize: 14 }}>
+              <div style={{ fontSize: 40, marginBottom: 10 }}>🩺</div>
+              Chưa có kết quả chẩn đoán từ bác sĩ
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Modal HealthProfilePanel */}
       {showHealthPanel && (
-        <div style={{
-          position: "fixed", inset: 0, background: "rgba(10,45,110,0.35)",
-          zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center",
-          padding: 20,
-        }}
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(10,45,110,0.35)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
           onClick={e => e.target === e.currentTarget && handlePanelClose()}
         >
-          <div style={{
-            background: "#fff", borderRadius: 16, width: "100%", maxWidth: 560,
-            maxHeight: "90vh", overflowY: "auto", padding: "28px 32px",
-            boxShadow: "0 24px 64px rgba(0,0,0,0.2)",
-          }}>
+          <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto", padding: "28px 32px", boxShadow: "0 24px 64px rgba(0,0,0,0.2)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h3 style={{ margin: 0, color: PRIMARY, fontSize: 16 }}>🩺 Cập nhật hồ sơ sức khỏe</h3>
-              <button onClick={handlePanelClose} style={{
-                background: "none", border: "none", fontSize: 20,
-                cursor: "pointer", color: "#5F6B7A", lineHeight: 1,
-              }}>✕</button>
+              <button onClick={handlePanelClose} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#5F6B7A", lineHeight: 1 }}>✕</button>
             </div>
             <HealthProfilePanel patientId={userId} onClose={handlePanelClose} />
           </div>

@@ -1,44 +1,192 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 
 const PRIMARY = "#0A2D6E"
+const PRIMARY_MED = "#1A4FA8"
 const PRIMARY_LIGHT = "#E6F1FB"
+const SUCCESS = "#059669"
+const WARNING = "#D97706"
+const ERROR = "#DC2626"
+const BORDER = "#C9D8EE"
+const GRAY = "#5F6B7A"
+
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 
-export default function UpdateMedicalRecordPanel({ onClose }) {
-  const [form, setForm] = useState({
-    fullName: "",
-    dob: "",
-    gender: "",
-    phone: "",
-    address: "",
-    bloodType: "",
-    medicalHistory: "",
-    drugAllergies: "",
-    currentSymptoms: "",
-  })
-  const [loading, setLoading] = useState(false)
-  const [fetching, setFetching] = useState(true)
-  const [success, setSuccess] = useState(false)
+const DRUG_SUGGESTIONS = [
+  "Penicillin", "Amoxicillin", "Ampicillin", "Aspirin", "Ibuprofen",
+  "Paracetamol", "Acetaminophen", "Codeine", "Morphine", "Tramadol",
+  "Diclofenac", "Naproxen", "Celecoxib", "Metformin", "Insulin",
+  "Atorvastatin", "Simvastatin", "Amlodipine", "Lisinopril", "Losartan",
+  "Metoprolol", "Atenolol", "Warfarin", "Heparin", "Clopidogrel",
+  "Omeprazole", "Pantoprazole", "Ranitidine", "Metronidazole", "Ciprofloxacin",
+  "Azithromycin", "Doxycycline", "Tetracycline", "Erythromycin", "Clarithromycin",
+  "Sulfamethoxazole", "Trimethoprim", "Fluconazole", "Ketoconazole", "Clotrimazole",
+  "Prednisolone", "Dexamethasone", "Hydrocortisone", "Methylprednisolone",
+  "Cetirizine", "Loratadine", "Diphenhydramine", "Chlorpheniramine",
+  "Salbutamol", "Terbutaline", "Theophylline", "Montelukast",
+  "Diazepam", "Lorazepam", "Alprazolam", "Clonazepam",
+  "Amitriptyline", "Sertraline", "Fluoxetine", "Escitalopram",
+  "Carbamazepine", "Phenytoin", "Valproate", "Gabapentin", "Pregabalin",
+  "Ceftriaxone", "Cefuroxime", "Cephalexin", "Vancomycin", "Gentamicin",
+  "Streptomycin", "Rifampicin", "Isoniazid", "Ethambutol",
+  "Chloroquine", "Quinine", "Artesunate", "Ivermectin",
+  "Acyclovir", "Oseltamivir", "Ribavirin",
+  "Lidocaine", "Bupivacaine", "Procaine",
+  "Contrast dye (thuốc cản quang)", "Latex (cao su tự nhiên)",
+]
+
+function DrugInput({ value, onChange }) {
+  const [inputVal, setInputVal] = useState("")
+  const [suggestions, setSuggestions] = useState([])
+  const [showSug, setShowSug] = useState(false)
+  const inputRef = useRef(null)
+  const wrapRef = useRef(null)
+
+  const tags = value ? value.split(",").map(t => t.trim()).filter(Boolean) : []
+
+  const handleInput = (e) => {
+    const v = e.target.value
+    setInputVal(v)
+    if (v.trim().length >= 1) {
+      const filtered = DRUG_SUGGESTIONS.filter(d =>
+        d.toLowerCase().includes(v.toLowerCase()) && !tags.includes(d)
+      ).slice(0, 6)
+      setSuggestions(filtered)
+      setShowSug(filtered.length > 0)
+    } else {
+      setShowSug(false)
+    }
+  }
+
+  const addTag = (drug) => {
+    const newTags = [...tags, drug]
+    onChange(newTags.join(", "))
+    setInputVal("")
+    setShowSug(false)
+    inputRef.current?.focus()
+  }
+
+  const removeTag = (idx) => {
+    const newTags = tags.filter((_, i) => i !== idx)
+    onChange(newTags.join(", "))
+  }
+
+  const handleKeyDown = (e) => {
+    if ((e.key === "Enter" || e.key === ",") && inputVal.trim()) {
+      e.preventDefault()
+      addTag(inputVal.trim())
+    }
+    if (e.key === "Backspace" && !inputVal && tags.length > 0) {
+      removeTag(tags.length - 1)
+    }
+  }
 
   useEffect(() => {
-    const fetchRecord = async () => {
+    const handler = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setShowSug(false)
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative" }}>
+      <div style={{
+        minHeight: 44, padding: "6px 10px", borderRadius: 8,
+        border: `1.5px solid ${BORDER}`, background: "#F8FAFD",
+        display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center",
+        cursor: "text", boxSizing: "border-box",
+      }} onClick={() => inputRef.current?.focus()}>
+        {tags.map((tag, i) => (
+          <span key={i} style={{
+            display: "inline-flex", alignItems: "center", gap: 4,
+            background: "#FEF3C7", border: "1px solid #FCD34D",
+            color: "#92400E", borderRadius: 6, padding: "2px 8px",
+            fontSize: 12, fontWeight: 600,
+          }}>
+            ⚠ {tag}
+            <button onClick={() => removeTag(i)} style={{
+              background: "none", border: "none", cursor: "pointer",
+              color: "#92400E", fontSize: 14, padding: 0, lineHeight: 1,
+              display: "flex", alignItems: "center",
+            }}>×</button>
+          </span>
+        ))}
+        <input
+          ref={inputRef}
+          value={inputVal}
+          onChange={handleInput}
+          onKeyDown={handleKeyDown}
+          onFocus={() => inputVal && setShowSug(suggestions.length > 0)}
+          placeholder={tags.length === 0 ? "Nhập tên thuốc rồi Enter... (VD: Penicillin)" : "Thêm thuốc..."}
+          style={{
+            border: "none", outline: "none", background: "transparent",
+            fontSize: 13, color: "#1a2a40", flex: 1, minWidth: 160,
+            fontFamily: "'Segoe UI', Arial, sans-serif",
+          }}
+        />
+      </div>
+
+      {showSug && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+          background: "#fff", border: `1.5px solid ${BORDER}`, borderRadius: 8,
+          boxShadow: "0 8px 24px rgba(10,45,110,0.12)", zIndex: 100, overflow: "hidden",
+        }}>
+          <div style={{ padding: "6px 10px", fontSize: 11, color: GRAY, background: PRIMARY_LIGHT, fontWeight: 600 }}>
+            💊 Gợi ý thuốc — nhấn để chọn
+          </div>
+          {suggestions.map((s, i) => (
+            <div key={i} onMouseDown={() => addTag(s)} style={{
+              padding: "9px 14px", fontSize: 13, cursor: "pointer",
+              color: "#1a2a40", transition: "background 0.1s",
+              borderTop: i === 0 ? "none" : `1px solid ${PRIMARY_LIGHT}`,
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = PRIMARY_LIGHT}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              💊 {s}
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ fontSize: 11, color: GRAY, marginTop: 4 }}>
+        Gõ tên thuốc → chọn gợi ý hoặc nhấn Enter để thêm. Nhấn ✕ để xoá.
+      </div>
+    </div>
+  )
+}
+
+export default function HealthProfilePanel({ patientId, onClose }) {
+  const [form, setForm] = useState({
+    nhomMau: "",
+    tienSuBenh: "",
+    diUng: "",
+    trieuChung: "",
+    ghiChu: "",
+  })
+  const [fetching, setFetching] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState("")
+
+  // ✅ Fetch dữ liệu hiện tại từ đúng route
+  useEffect(() => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem("token")
-        const res = await fetch("http://localhost:5000/api/v1/patient/medical-record/my-record", {
+        const id = patientId || localStorage.getItem("userId")
+        const res = await fetch(`http://localhost:5000/api/v1/patients/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (res.ok) {
           const data = await res.json()
+          const p = data.data || data
           setForm({
-            fullName: data.fullName || localStorage.getItem("fullName") || "",
-            dob: data.dob ? data.dob.slice(0, 10) : "",
-            gender: data.gender || "",
-            phone: data.phone || "",
-            address: data.address || "",
-            bloodType: data.bloodType || "",
-            medicalHistory: data.medicalHistory || "",
-            drugAllergies: data.drugAllergies || "",
-            currentSymptoms: data.currentSymptoms || "",
+            nhomMau:    p.nhomMau    || "",
+            tienSuBenh: p.tienSuBenh || "",
+            diUng:      p.diUng      || "",
+            trieuChung: p.trieuChung || "",
+            ghiChu:     p.ghiChu     || "",
           })
         }
       } catch (err) {
@@ -47,17 +195,18 @@ export default function UpdateMedicalRecordPanel({ onClose }) {
         setFetching(false)
       }
     }
-    fetchRecord()
-  }, [])
+    fetchData()
+  }, [patientId])
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
-
+  // ✅ Submit đến đúng route PUT /api/v1/patients/:id/health-profile
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
+    setError("")
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch("http://localhost:5000/api/v1/patient/medical-record/my-record", {
+      const id = patientId || localStorage.getItem("userId")
+      const res = await fetch(`http://localhost:5000/api/v1/patients/${id}/health-profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -67,163 +216,173 @@ export default function UpdateMedicalRecordPanel({ onClose }) {
       })
       if (res.ok) {
         setSuccess(true)
-        setTimeout(() => { setSuccess(false); onClose() }, 1800)
+        setTimeout(() => { setSuccess(false); onClose?.() }, 2000)
+      } else {
+        const data = await res.json()
+        setError(data.message || "Cập nhật thất bại!")
       }
     } catch (err) {
-      console.error(err)
+      setError("Lỗi kết nối máy chủ!")
     } finally {
       setLoading(false)
     }
   }
 
-  const inputStyle = {
-    width: "100%", padding: "9px 13px", borderRadius: 8,
-    border: "1px solid #C9D8EE", fontSize: 13, color: "#1a2a40",
+  const inp = {
+    width: "100%", padding: "10px 13px", borderRadius: 8,
+    border: `1.5px solid ${BORDER}`, fontSize: 13, color: "#1a2a40",
     background: "#F8FAFD", outline: "none", boxSizing: "border-box",
-    fontFamily: "'Segoe UI', Arial, sans-serif", transition: "border-color 0.2s",
+    fontFamily: "'Segoe UI', Arial, sans-serif", resize: "vertical",
   }
   const labelStyle = {
-    fontSize: 11, fontWeight: 600, color: "#5F6B7A",
-    textTransform: "uppercase", letterSpacing: "0.05em",
-    marginBottom: 4, display: "block",
+    fontSize: 11, fontWeight: 700, color: GRAY,
+    textTransform: "uppercase", letterSpacing: "0.06em",
+    marginBottom: 6, display: "block",
   }
-  const sectionHeadStyle = {
-    fontSize: 12, fontWeight: 700, color: PRIMARY,
+  const section = {
+    fontSize: 11, fontWeight: 700, color: PRIMARY,
     textTransform: "uppercase", letterSpacing: "0.08em",
     borderBottom: `2px solid ${PRIMARY_LIGHT}`,
-    paddingBottom: 8, marginBottom: 16, marginTop: 8,
+    paddingBottom: 8, marginBottom: 16, marginTop: 4,
   }
 
-  if (fetching) {
-    return (
-      <div style={{ textAlign: "center", padding: "48px 0", color: "#5F6B7A", fontSize: 14 }}>
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-          style={{ animation: "spin 0.8s linear infinite", marginBottom: 10, display: "block", margin: "0 auto 10px" }}>
-          <circle cx="12" cy="12" r="10" stroke="#C9D8EE" strokeWidth="4" />
-          <path d="M4 12a8 8 0 018-8" stroke={PRIMARY} strokeWidth="4" strokeLinecap="round" />
-        </svg>
-        Đang tải hồ sơ...
-      </div>
-    )
-  }
+  if (fetching) return (
+    <div style={{ textAlign: "center", padding: "48px 0", color: GRAY }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: "50%",
+        border: `3px solid ${PRIMARY_LIGHT}`, borderTopColor: PRIMARY,
+        animation: "spin 0.8s linear infinite", margin: "0 auto 12px",
+      }} />
+      Đang tải hồ sơ sức khỏe...
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  )
 
-  if (success) {
-    return (
-      <div style={{ textAlign: "center", padding: "48px 0" }}>
-        <div style={{
-          width: 64, height: 64, borderRadius: "50%",
-          background: "#E6F9F0", border: "2px solid #34C77B",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 28, margin: "0 auto 16px",
-        }}>✓</div>
-        <div style={{ fontWeight: 700, fontSize: 16, color: PRIMARY }}>Cập nhật thành công!</div>
-        <div style={{ fontSize: 13, color: "#5F6B7A", marginTop: 6 }}>Hồ sơ bệnh án đã được lưu lại.</div>
-      </div>
-    )
-  }
+  if (success) return (
+    <div style={{ textAlign: "center", padding: "48px 0" }}>
+      <div style={{
+        width: 68, height: 68, borderRadius: "50%",
+        background: "#D1FAE5", border: `2px solid ${SUCCESS}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 30, margin: "0 auto 16px",
+      }}>✓</div>
+      <div style={{ fontWeight: 700, fontSize: 17, color: SUCCESS }}>Cập nhật thành công!</div>
+      <div style={{ fontSize: 13, color: GRAY, marginTop: 6 }}>Hồ sơ sức khỏe của bạn đã được lưu.</div>
+    </div>
+  )
 
   return (
     <form onSubmit={handleSubmit} style={{ padding: "4px 0" }}>
-      {/* Thông tin cá nhân */}
-      <div style={sectionHeadStyle}>👤 Thông tin cá nhân</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-        <div style={{ gridColumn: "1 / -1" }}>
-          <label style={labelStyle}>Họ và tên <span style={{ color: "#e53e3e" }}>*</span></label>
-          <input name="fullName" value={form.fullName} onChange={handleChange} required placeholder="Nguyễn Văn A" style={inputStyle} />
-        </div>
-        <div>
-          <label style={labelStyle}>Ngày sinh <span style={{ color: "#e53e3e" }}>*</span></label>
-          <input type="date" name="dob" value={form.dob} onChange={handleChange} required style={{ ...inputStyle, colorScheme: "light" }} />
-        </div>
-        <div>
-          <label style={labelStyle}>Giới tính <span style={{ color: "#e53e3e" }}>*</span></label>
-          <select name="gender" value={form.gender} onChange={handleChange} required style={inputStyle}>
-            <option value="">Chọn...</option>
-            <option value="male">Nam</option>
-            <option value="female">Nữ</option>
-            <option value="other">Khác</option>
-          </select>
-        </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+
+      {error && (
+        <div style={{
+          background: "#FEF2F2", border: `1px solid ${ERROR}`, borderRadius: 8,
+          padding: "10px 14px", marginBottom: 16, fontSize: 13, color: ERROR,
+        }}>⚠ {error}</div>
+      )}
+
+      {/* Nhóm máu */}
+      <div style={section}>🩸 Nhóm máu</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
+        {BLOOD_TYPES.map(bt => (
+          <button key={bt} type="button"
+            onClick={() => setForm(f => ({ ...f, nhomMau: bt }))}
+            style={{
+              padding: "7px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700,
+              cursor: "pointer", transition: "all 0.15s",
+              border: `1.5px solid ${form.nhomMau === bt ? PRIMARY : BORDER}`,
+              background: form.nhomMau === bt ? PRIMARY : "#fff",
+              color: form.nhomMau === bt ? "#fff" : "#1a2a40",
+              boxShadow: form.nhomMau === bt ? "0 2px 8px rgba(10,45,110,0.2)" : "none",
+            }}
+          >{bt}</button>
+        ))}
+        {form.nhomMau && (
+          <button type="button" onClick={() => setForm(f => ({ ...f, nhomMau: "" }))}
+            style={{
+              padding: "7px 14px", borderRadius: 8, fontSize: 12,
+              border: `1px solid ${BORDER}`, background: "#fff",
+              color: GRAY, cursor: "pointer",
+            }}>✕ Bỏ chọn</button>
+        )}
       </div>
 
-      {/* Liên hệ */}
-      <div style={sectionHeadStyle}>📍 Liên hệ</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-        <div>
-          <label style={labelStyle}>Số điện thoại <span style={{ color: "#e53e3e" }}>*</span></label>
-          <input name="phone" value={form.phone} onChange={handleChange} required placeholder="0912 345 678" style={inputStyle} />
-        </div>
-        <div>
-          <label style={labelStyle}>Địa chỉ</label>
-          <input name="address" value={form.address} onChange={handleChange} placeholder="Quận 1, TP.HCM" style={inputStyle} />
-        </div>
-      </div>
-
-      {/* Y tế */}
-      <div style={sectionHeadStyle}>🩺 Thông tin y tế</div>
-      <div style={{ marginBottom: 14 }}>
-        <label style={labelStyle}>Nhóm máu</label>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {BLOOD_TYPES.map((bt) => (
-            <button key={bt} type="button" onClick={() => setForm({ ...form, bloodType: bt })}
-              style={{
-                padding: "6px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer",
-                border: `1.5px solid ${form.bloodType === bt ? PRIMARY : "#C9D8EE"}`,
-                background: form.bloodType === bt ? PRIMARY : "#fff",
-                color: form.bloodType === bt ? "#fff" : "#1a2a40",
-                transition: "all 0.15s",
-              }}
-            >{bt}</button>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ marginBottom: 14 }}>
-        <label style={labelStyle}>Tiền sử bệnh án</label>
-        <textarea name="medicalHistory" value={form.medicalHistory} onChange={handleChange} rows={3}
-          placeholder="Ví dụ: Tiểu đường type 2, cao huyết áp..."
-          style={{ ...inputStyle, resize: "vertical" }} />
-      </div>
-
-      <div style={{ marginBottom: 14 }}>
-        <label style={labelStyle}>
-          Dị ứng thuốc{" "}
-          <span style={{ color: "#d97706", background: "#FEF3C7", padding: "1px 7px", borderRadius: 4, fontSize: 10 }}>⚠ Quan trọng</span>
-        </label>
-        <textarea name="drugAllergies" value={form.drugAllergies} onChange={handleChange} rows={2}
-          placeholder="Ví dụ: Penicillin, Aspirin..."
-          style={{ ...inputStyle, resize: "vertical" }} />
-      </div>
-
+      {/* Tiền sử bệnh */}
+      <div style={section}>📋 Tiền sử bệnh</div>
       <div style={{ marginBottom: 20 }}>
-        <label style={labelStyle}>Triệu chứng / Ghi chú hiện tại</label>
-        <textarea name="currentSymptoms" value={form.currentSymptoms} onChange={handleChange} rows={3}
-          placeholder="Mô tả triệu chứng bạn đang gặp phải..."
-          style={{ ...inputStyle, resize: "vertical" }} />
+        <label style={labelStyle}>Các bệnh lý đã/đang mắc</label>
+        <textarea
+          value={form.tienSuBenh}
+          onChange={e => setForm(f => ({ ...f, tienSuBenh: e.target.value }))}
+          rows={3}
+          placeholder="VD: Tiểu đường type 2, cao huyết áp, viêm gan B..."
+          style={inp}
+        />
+      </div>
+
+      {/* Dị ứng */}
+      <div style={section}>⚠ Dị ứng thuốc</div>
+      <div style={{ marginBottom: 20 }}>
+        <label style={{ ...labelStyle, color: WARNING }}>
+          Tên thuốc gây dị ứng
+          <span style={{ fontSize: 10, background: "#FEF3C7", color: WARNING, padding: "1px 7px", borderRadius: 4, fontWeight: 600, marginLeft: 6 }}>Quan trọng</span>
+        </label>
+        <DrugInput
+          value={form.diUng}
+          onChange={val => setForm(f => ({ ...f, diUng: val }))}
+        />
+      </div>
+
+      {/* Triệu chứng */}
+      <div style={section}>🌡 Triệu chứng hiện tại</div>
+      <div style={{ marginBottom: 20 }}>
+        <label style={labelStyle}>Mô tả triệu chứng bạn đang gặp</label>
+        <textarea
+          value={form.trieuChung}
+          onChange={e => setForm(f => ({ ...f, trieuChung: e.target.value }))}
+          rows={3}
+          placeholder="VD: Đau đầu, chóng mặt, khó thở khi gắng sức..."
+          style={inp}
+        />
+      </div>
+
+      {/* Ghi chú */}
+      <div style={section}>📝 Ghi chú thêm</div>
+      <div style={{ marginBottom: 24 }}>
+        <label style={labelStyle}>Thông tin khác bạn muốn bác sĩ biết</label>
+        <textarea
+          value={form.ghiChu}
+          onChange={e => setForm(f => ({ ...f, ghiChu: e.target.value }))}
+          rows={2}
+          placeholder="VD: Đang mang thai, đang dùng thuốc huyết áp hàng ngày..."
+          style={inp}
+        />
       </div>
 
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-        <button type="button" onClick={onClose}
-          style={{
-            padding: "9px 22px", borderRadius: 8, border: "1.5px solid #C9D8EE",
-            background: "#fff", color: "#5F6B7A", fontSize: 13, fontWeight: 600, cursor: "pointer",
-          }}
-        >Hủy</button>
-        <button type="submit" disabled={loading}
-          style={{
-            padding: "9px 28px", borderRadius: 8, border: "none",
-            background: loading ? "#7fa8d8" : PRIMARY, color: "#fff",
-            fontSize: 13, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
-            display: "flex", alignItems: "center", gap: 8, transition: "background 0.2s",
-          }}
-        >
+        {onClose && (
+          <button type="button" onClick={onClose} style={{
+            padding: "10px 22px", borderRadius: 8,
+            border: `1.5px solid ${BORDER}`, background: "#fff",
+            color: GRAY, fontSize: 13, fontWeight: 600, cursor: "pointer",
+          }}>Hủy</button>
+        )}
+        <button type="submit" disabled={loading} style={{
+          padding: "10px 28px", borderRadius: 8, border: "none",
+          background: loading ? "#93B8E8" : `linear-gradient(90deg, ${PRIMARY}, ${PRIMARY_MED})`,
+          color: "#fff", fontSize: 13, fontWeight: 700,
+          cursor: loading ? "not-allowed" : "pointer",
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
           {loading && (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: "spin 0.8s linear infinite" }}>
-              <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="4" />
-              <path d="M4 12a8 8 0 018-8" stroke="#fff" strokeWidth="4" strokeLinecap="round" />
-            </svg>
+            <div style={{
+              width: 14, height: 14, borderRadius: "50%",
+              border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff",
+              animation: "spin 0.8s linear infinite",
+            }} />
           )}
-          {loading ? "Đang lưu..." : "Lưu hồ sơ"}
+          {loading ? "Đang lưu..." : "💾 Lưu hồ sơ"}
         </button>
       </div>
     </form>
