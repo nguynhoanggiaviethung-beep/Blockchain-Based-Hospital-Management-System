@@ -1,48 +1,35 @@
 import { useNavigate } from 'react-router-dom'
-import { mockPatientList } from '../mock/mockData'
+import { mockGetDoctorResponse, mockPatientList } from '../mock/mockData'
+
 
 const PRIMARY = "#0A2D6E"
 const PRIMARY_LIGHT = "#E6F1FB"
 
+
 export default function DoctorDashboard() {
   const navigate = useNavigate()
+  const doctor = mockGetDoctorResponse.data
 
-  // Lấy thông tin từ localStorage (đã lưu lúc login)
-  const fullName = localStorage.getItem("fullName") || "Bác sĩ"
-  const specialty = localStorage.getItem("specialty") || ""
-  const licenseNumber = localStorage.getItem("licenseNumber") || ""
-
-  const handleLogout = () => {
-    localStorage.clear()
-    navigate("/")
-  }
 
   return (
     <div style={{ minHeight: "100vh", background: "#F4F7FB", fontFamily: "'Segoe UI', Arial, sans-serif" }}>
-      {/* Header */}
       <div style={{ background: PRIMARY, color: "#fff", padding: "14px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontWeight: 700, fontSize: 18 }}>🏥 VNmedID — Bác sĩ</div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <span style={{ fontSize: 14 }}>🩺 {fullName}</span>
-          <button
-            onClick={handleLogout}
-            style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "6px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13 }}
-          >
+          <span style={{ fontSize: 14 }}>🩺 {doctor.fullName}</span>
+          <button onClick={() => navigate("/")} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "6px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13 }}>
             Đăng xuất
           </button>
         </div>
       </div>
 
+
       <div style={{ padding: "32px" }}>
-        {/* Tiêu đề chào */}
         <div style={{ marginBottom: 28 }}>
-          <h2 style={{ color: PRIMARY, margin: 0 }}>Xin chào, BS. {fullName} 👋</h2>
-          <p style={{ color: "#5F6B7A", marginTop: 4 }}>
-            {specialty && `Chuyên khoa: ${specialty}`}
-            {specialty && licenseNumber && " · "}
-            {licenseNumber && `Mã: ${licenseNumber}`}
-          </p>
+          <h2 style={{ color: PRIMARY, margin: 0 }}>Xin chào, BS. {doctor.fullName} 👋</h2>
+          <p style={{ color: "#5F6B7A", marginTop: 4 }}>Chuyên khoa: {doctor.specialty} · Mã: {doctor.licenseNumber}</p>
         </div>
+
 
         {/* Stat cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, marginBottom: 32 }}>
@@ -59,13 +46,15 @@ export default function DoctorDashboard() {
           ))}
         </div>
 
+
         {/* Danh sách bệnh nhân */}
         <div style={{ background: "#fff", borderRadius: 14, padding: "24px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
           <h3 style={{ color: PRIMARY, marginTop: 0 }}>👥 Danh sách bệnh nhân được phân công</h3>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: PRIMARY_LIGHT }}>
-                {["Họ tên", "Ngày sinh", "Giới tính", "SĐT"].map(h => (
+                {/* CHỖ THÊM 1: Chèn chữ "Thao tác" vào mảng này */}
+                {["Họ tên", "Ngày sinh", "Giới tính", "SĐT", "Thao tác"].map(h => (
                   <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 13, color: PRIMARY }}>{h}</th>
                 ))}
               </tr>
@@ -77,6 +66,31 @@ export default function DoctorDashboard() {
                   <td style={{ padding: "10px 14px", fontSize: 14 }}>{p.dob}</td>
                   <td style={{ padding: "10px 14px", fontSize: 14 }}>{p.gender}</td>
                   <td style={{ padding: "10px 14px", fontSize: 14 }}>{p.phone}</td>
+                  {/* CHỖ THÊM 2: Cột chứa nút bấm chuyển trang */}
+                  <td style={{ padding: "10px 14px" }}>
+                    <button
+                      onClick={() => {
+                        if (p._id) {
+                          // Sửa đường dẫn thành /dashboard/doctor/diagnose/ để nằm trong vùng an toàn
+                          navigate(`/dashboard/doctor/diagnose/${p._id}`);
+                        } else {
+                          alert("Lỗi: Không tìm thấy ID của bệnh nhân này!");
+                        }
+                      }}
+                      style={{
+                      background: PRIMARY,
+                      color: "#fff",
+                      border: "none",
+                      padding: "6px 14px",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      fontSize: 13,
+                      fontWeight: 600
+                }}
+                  >
+                    Vào khám
+                  </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -86,3 +100,4 @@ export default function DoctorDashboard() {
     </div>
   )
 }
+

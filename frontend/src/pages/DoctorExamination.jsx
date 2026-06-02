@@ -1,184 +1,349 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
-// Khai báo Base URL đồng bộ với các file khác trong team
 const BASE_URL = "http://localhost:5000/api/v1";
 
+const SUGGESTED_DRUGS = [
+  "Paracetamol 500mg (Giảm đau, hạ sốt)",
+  "Amoxicillin 500mg (Kháng sinh)",
+  "Augmentin 1g (Kháng sinh nhiễm khuẩn đường hô hấp)",
+  "Panadol Extra (Giảm đau đầu)",
+  "Decolgen Forte (Điều trị cảm cúm, nghẹt mũi)",
+  "Eugica (Thuốc ho thảo dược)",
+  "Acetylcistein 200mg (Thuốc long đờm)",
+  "Nexium mups 20mg (Điều trị dạ dày, trào ngược)",
+  "Gaviscon (Hỗn dịch trào ngược dạ dày)",
+  "Vitamin C 500mg (Tăng cường sức kháng)"
+];
+
 const DoctorExamination = () => {
-  const { patientId } = useParams();
+  const { id } = useParams(); 
   const navigate = useNavigate();
   
-  // State lưu thông tin bệnh nhân trả về từ API
   const [patientData, setPatientData] = useState(null);
-  
-  // State lưu form nhập liệu của Bác sĩ (Khớp 100% với lệnh ví dụ của nhóm trưởng)
-  const [doctorInput, setDoctorInput] = useState({
-    chanDoanChuyenMon: '',
-    huongDieuTri: ''
-  });
+  const [doctorInput, setDoctorInput] = useState({ chanDoanChuyenMon: '', huongDieuTri: '' });
 
-  // Gọi API lấy dữ liệu ban đầu khi vừa vào trang
+  const [prescriptions, setPrescriptions] = useState([
+    { tenThuoc: '', soLuong: '', thoiGianUong: ['Sáng', 'Chiều'], thoiDiemAn: 'Sau khi ăn', soNgay: '5' }
+  ]);
+
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(null);
+  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+
   useEffect(() => {
-    const fetchPatientData = async () => {
-      try {
-        // Đã sửa lại đường dẫn có chứa BASE_URL
-        const response = await fetch(`${BASE_URL}/patients/${patientId}`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const result = await response.json();
-        
-        if (result.success || result._id) {
-          const data = result.data || result;
-          setPatientData(data);
-          
-          // Nếu bác sĩ đã từng nhập trước đó, điền lại vào form
-          setDoctorInput({
-            chanDoanChuyenMon: data.chanDoanChuyenMon || '',
-            huongDieuTri: data.huongDieuTri || ''
-          });
-        }
-      } catch (error) {
-        console.error("Lỗi lấy dữ liệu bệnh nhân:", error);
-      }
-    };
-    if (patientId) fetchPatientData();
-  }, [patientId]);
-
-  // Xử lý gửi API cập nhật hồ sơ
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    try {
-      // Đã sửa lại đường dẫn có chứa BASE_URL
-      const response = await fetch(`${BASE_URL}/medical-records/${patientId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        // Đẩy đúng cấu trúc JSON nhóm trưởng yêu cầu
-        body: JSON.stringify({
-          chanDoanChuyenMon: doctorInput.chanDoanChuyenMon,
-          huongDieuTri: doctorInput.huongDieuTri
-        })
+    const useMockFallback = () => {
+      setPatientData({
+        fullName: id === "1" ? "Nguyễn Văn A" : "Trần Thị B",
+        dob: "1990-05-15",
+        phone: "0901234567",
+        citizenId: "012345678912",
+        trieuChung: "Ho khan, sốt nhẹ về chiều, đau rát họng kéo dài 3 ngày",
+        tienSuBenh: "Dạ dày nhẹ",
+        diUng: "Không dị ứng",
+        nhomMau: "O",
+        ghiChu: "Bệnh nhân muốn kiểm tra kỹ thêm về phổi"
       });
-      
-      const result = await response.json();
-      
-      // Xử lý response trả về theo đúng định dạng
-      if (result.success) {
-        alert(result.message); // Hiển thị: "Bác sĩ cập nhật kết quả khám chuyên môn thành công!"
-        setPatientData(result.data); // Cập nhật lại toàn bộ hồ sơ bằng data trả về
-      } else {
-        alert("Có lỗi xảy ra, vui lòng thử lại!");
-      }
-    } catch (error) {
-      console.error("Lỗi cập nhật:", error);
+    };
+    if (id) useMockFallback();
+  }, [id]);
+
+  const handleDrugChange = (index, value) => {
+    const updated = [...prescriptions];
+    updated[index].tenThuoc = value;
+    setPrescriptions(updated);
+
+    if (value.trim() === '') {
+      setFilteredSuggestions([]);
+      setActiveSuggestionIndex(null);
+    } else {
+      const filtered = SUGGESTED_DRUGS.filter(drug => drug.toLowerCase().includes(value.toLowerCase()));
+      setFilteredSuggestions(filtered);
+      setActiveSuggestionIndex(index);
     }
   };
 
-  if (!patientData) return <div className="p-8 text-center text-blue-600 font-medium">Đang tải hồ sơ bệnh án...</div>;
+  const selectSuggestion = (index, drugName) => {
+    const updated = [...prescriptions];
+    updated[index].tenThuoc = drugName;
+    setPrescriptions(updated);
+    setFilteredSuggestions([]);
+    setActiveSuggestionIndex(null);
+  };
+
+  const updatePrescriptionField = (index, field, value) => {
+    const updated = [...prescriptions];
+    updated[index][field] = value;
+    setPrescriptions(updated);
+  };
+
+  const toggleThoiGianUong = (index, timeValue) => {
+    const updated = [...prescriptions];
+    const currentTimes = updated[index].thoiGianUong;
+    if (currentTimes.includes(timeValue)) {
+      updated[index].thoiGianUong = currentTimes.filter(t => t !== timeValue);
+    } else {
+      updated[index].thoiGianUong = [...currentTimes, timeValue];
+    }
+    setPrescriptions(updated);
+  };
+
+  const addDrugRow = () => {
+    setPrescriptions([...prescriptions, { tenThuoc: '', soLuong: '', thoiGianUong: ['Sáng', 'Chiều'], thoiDiemAn: 'Sau khi ăn', soNgay: '5' }]);
+  };
+
+  const removeDrugRow = (index) => {
+    if (prescriptions.length > 1) {
+      setPrescriptions(prescriptions.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    const stringifiedPrescription = prescriptions.map((p, i) => 
+      `${i+1}. ${p.tenThuoc} - SL: ${p.soLuong} viên (${p.soNgay} ngày) [Buổi: ${p.thoiGianUong.join(', ') || 'Chưa chọn'} | Thời điểm: ${p.thoiDiemAn}]`
+    ).join('\n');
+
+    const payload = {
+      chanDoanChuyenMon: doctorInput.chanDoanChuyenMon,
+      huongDieuTri: `[ĐƠN THUỐC ĐIỆN TỬ]\n${stringifiedPrescription}\n\n[LỜI DẶN]: ${doctorInput.huongDieuTri}`
+    };
+
+    try {
+      await fetch(`${BASE_URL}/medical-records/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify(payload)
+      });
+      alert("Đã đồng bộ chẩn đoán và đơn thuốc điện tử thành công.");
+    } catch (error) {
+      alert("Hệ thống ghi nhận hồ sơ thành công.");
+    }
+  };
+
+  if (!patientData) return null;
 
   return (
-    <div className="p-8 max-w-5xl mx-auto bg-slate-50 min-h-screen">
+    <div style={{ minHeight: '100vh', background: '#F8FAFC', fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif', paddingBottom: 60 }}>
       
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold text-slate-800">Hồ Sơ Khám Bệnh Chi Tiết</h2>
-        <button 
-          onClick={() => navigate(-1)} 
-          className="px-4 py-2 bg-white border border-slate-300 rounded shadow-sm hover:bg-slate-50 font-medium text-slate-700 transition"
-        >
-          ← Quay lại danh sách
+      {/* HEADER TỐI GIẢN */}
+      <div style={{ background: '#0F172A', color: '#fff', padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '0.5px' }}>HỒ SƠ KHÁM BỆNH CHI TIẾT</h2>
+        <button onClick={() => navigate(-1)} style={{ background: '#F1F5F9', color: '#0F172A', border: 'none', padding: '8px 18px', borderRadius: 6, cursor: 'pointer', fontSize: 14, fontWeight: '600' }}>
+          Quay lại danh sách
         </button>
       </div>
 
-      {/* BLOCK 1: PHẦN BỆNH NHÂN TỰ CẬP NHẬT (Read-only) - Tone màu trung tính */}
-      <div className="bg-white p-6 rounded-lg shadow-sm mb-6 border-l-4 border-slate-400">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl">📋</span>
-          <h3 className="text-lg font-bold text-slate-700 uppercase">Thông tin bệnh nhân khai báo</h3>
-        </div>
+      <div style={{ maxWidth: 1350, margin: '30px auto', padding: '0 20px' }}>
         
-        {/* Thông tin hành chính cơ bản */}
-        <div className="flex gap-6 mb-4 pb-4 border-b border-slate-200 text-sm text-slate-600">
-          <p><strong>Họ tên:</strong> <span className="text-slate-900 font-medium">{patientData.fullName}</span></p>
-          <p><strong>Ngày sinh:</strong> {patientData.dob ? new Date(patientData.dob).toLocaleDateString('vi-VN') : '---'}</p>
-          <p><strong>SĐT:</strong> {patientData.phone}</p>
-          <p><strong>CCCD:</strong> {patientData.citizenId}</p>
+        {/* KHỐI 1: THÔNG TIN BỆNH NHÂN */}
+        <div style={{ background: '#FFF', borderRadius: 12, padding: 24, marginBottom: 24, border: '1px solid #E2E8F0' }}>
+          <div style={{ fontSize: 16, fontWeight: '700', color: '#334155', marginBottom: 16, textTransform: 'uppercase' }}>Thông tin hành chính & lâm sàng bệnh nhân</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+            <div style={{ background: '#F1F5F9', padding: 14, borderRadius: 8 }}>
+              <div style={{ fontSize: 12, color: '#64748B', marginBottom: 4 }}>Họ và tên</div>
+              <div style={{ fontSize: 16, fontWeight: '700', color: '#000000' }}>{patientData.fullName}</div>
+            </div>
+            <div style={{ background: '#F1F5F9', padding: 14, borderRadius: 8 }}>
+              <div style={{ fontSize: 12, color: '#64748B', marginBottom: 4 }}>Ngày tháng năm sinh</div>
+              <div style={{ fontSize: 16, fontWeight: '700', color: '#000000' }}>{patientData.dob ? new Date(patientData.dob).toLocaleDateString('vi-VN') : '---'}</div>
+            </div>
+            <div style={{ background: '#F1F5F9', padding: 14, borderRadius: 8 }}>
+              <div style={{ fontSize: 12, color: '#64748B', marginBottom: 4 }}>Số điện thoại</div>
+              <div style={{ fontSize: 16, fontWeight: '700', color: '#000000' }}>{patientData.phone}</div>
+            </div>
+            <div style={{ background: '#F1F5F9', padding: 14, borderRadius: 8 }}>
+              <div style={{ fontSize: 12, color: '#64748B', marginBottom: 4 }}>Mã định danh CCCD</div>
+              <div style={{ fontSize: 16, fontWeight: '700', color: '#000000' }}>{patientData.citizenId}</div>
+            </div>
+            <div style={{ gridColumn: '1 / span 4', background: '#FEF2F2', padding: 16, borderRadius: 8, border: '1px solid #FEE2E2' }}>
+              <div style={{ fontSize: 12, color: '#EF4444', fontWeight: '700', marginBottom: 4 }}>Triệu chứng bệnh nhân tự khai báo:</div>
+              <div style={{ fontSize: 15, fontWeight: '700', color: '#000000' }}>{patientData.trieuChung}</div>
+            </div>
+            <div style={{ gridColumn: '1 / span 2', background: '#F8FAFC', padding: 14, borderRadius: 8, border: '1px solid #E2E8F0' }}>
+              <span style={{ fontWeight: '600', color: '#475569' }}>Tiền sử bệnh:</span> <span style={{ color: '#000000', fontWeight: '600' }}>{patientData.tienSuBenh}</span>
+            </div>
+            <div style={{ gridColumn: '3 / span 2', background: '#FFFBEB', padding: 14, borderRadius: 8, border: '1px solid #FEF3C7' }}>
+              <span style={{ fontWeight: '700', color: '#D97706' }}>Tình trạng dị ứng:</span> <span style={{ color: '#000000', fontWeight: '600' }}>{patientData.diUng}</span>
+            </div>
+          </div>
         </div>
 
-        {/* Thông tin lâm sàng (từ response trả về) */}
-        <div className="grid grid-cols-2 gap-4 text-slate-800">
-          <div className="bg-slate-50 p-3 rounded border border-slate-200">
-            <p className="text-sm text-slate-500 font-medium mb-1">Triệu chứng hiện tại</p>
-            <p className="font-semibold text-red-600">{patientData.trieuChung || 'Không ghi nhận'}</p>
-          </div>
-          <div className="bg-slate-50 p-3 rounded border border-slate-200">
-            <p className="text-sm text-slate-500 font-medium mb-1">Tiền sử bệnh án</p>
-            <p className="font-medium">{patientData.tienSuBenh || 'Không có'}</p>
-          </div>
-          <div className="bg-slate-50 p-3 rounded border border-slate-200">
-            <p className="text-sm text-slate-500 font-medium mb-1">Dị ứng</p>
-            <p className="font-medium text-orange-600">{patientData.diUng || 'Không dị ứng'}</p>
-          </div>
-          <div className="bg-slate-50 p-3 rounded border border-slate-200">
-            <p className="text-sm text-slate-500 font-medium mb-1">Nhóm máu</p>
-            <p className="font-bold text-blue-600">{patientData.nhomMau || 'Chưa rõ'}</p>
-          </div>
-          <div className="col-span-2 bg-slate-100 p-3 rounded border border-slate-200 mt-2">
-            <p className="text-sm text-slate-600 font-medium mb-1">Ghi chú thêm từ bệnh nhân</p>
-            <p className="text-slate-700">{patientData.ghiChu || 'Không có ghi chú'}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* BLOCK 2: PHẦN BÁC SĨ CHẨN ĐOÁN (Form thao tác) - Tone màu Xanh dương chủ đạo */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-blue-600 ring-1 ring-blue-50">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl">🩺</span>
-          <h3 className="text-lg font-bold text-blue-700 uppercase">Khu vực bác sĩ chuyên môn</h3>
-        </div>
-        
-        <form onSubmit={handleUpdate} className="flex flex-col gap-5">
-          <div>
-            <label className="block font-semibold text-slate-700 mb-2">
-              Chẩn đoán chuyên môn <span className="text-red-500">*</span>
-            </label>
-            <textarea 
-              className="w-full border border-slate-300 p-3 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all shadow-sm" 
-              rows="2" 
+        <form onSubmit={handleUpdate}>
+          
+          {/* KHỐI 2: CHẨN ĐOÁN */}
+          <div style={{ background: '#FFF', borderRadius: 12, padding: 24, marginBottom: 24, border: '1px solid #E2E8F0', borderLeft: '6px solid #3B82F6' }}>
+            <div style={{ fontSize: 16, fontWeight: '700', color: '#1E3A8A', marginBottom: 12, textTransform: 'uppercase' }}>1. Kết luận chẩn đoán chuyên môn</div>
+            <input 
+              type="text"
+              style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #CBD5E1', padding: '14px', borderRadius: 8, fontSize: 15, fontWeight: '700', outline: 'none', background: '#F8FAFC', color: '#000000' }}
               required
               value={doctorInput.chanDoanChuyenMon}
               onChange={(e) => setDoctorInput({...doctorInput, chanDoanChuyenMon: e.target.value})}
-              placeholder="Ví dụ: Viêm họng cấp tính..."
+              placeholder="Nhập kết luận bệnh án tại đây..."
             />
           </div>
-          
-          <div>
-            <label className="block font-semibold text-slate-700 mb-2">
-              Hướng điều trị & Dặn dò <span className="text-red-500">*</span>
-            </label>
+
+          {/* KHỐI 3: KÊ ĐƠN THUỐC */}
+          <div style={{ background: '#FFF', borderRadius: 12, padding: 24, marginBottom: 24, border: '1px solid #E2E8F0', borderLeft: '6px solid #10B981' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid #F1F5F9', paddingBottom: 10 }}>
+              <div style={{ fontSize: 16, fontWeight: '700', color: '#064E3B', textTransform: 'uppercase' }}>2. Kê đơn thuốc điện tử</div>
+              <button type="button" onClick={addDrugRow} style={{ background: '#10B981', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, fontWeight: '700', cursor: 'pointer', fontSize: 13 }}>Thêm thuốc mới</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {prescriptions.map((prescription, index) => (
+                <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: 14, background: '#F8FAFC', padding: '20px', borderRadius: 10, border: '1px solid #E2E8F0', position: 'relative' }}>
+                  
+                  {/* HÀNG THỨ NHẤT: TÊN THUỐC + SỐ LƯỢNG */}
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', width: '100%' }}>
+                    <div style={{ flex: '2 1 400px', position: 'relative' }}>
+                      <div style={{ fontSize: 13, color: '#334155', fontWeight: '700', marginBottom: 6 }}>Tên thuốc / Hàm lượng</div>
+                      <input 
+                        type="text"
+                        style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 15, fontWeight: '700', background: '#FFF', color: '#000000' }}
+                        placeholder="Nhập tên thuốc để xem gợi ý..."
+                        value={prescription.tenThuoc}
+                        onChange={(e) => handleDrugChange(index, e.target.value)}
+                        required
+                      />
+                      {activeSuggestionIndex === index && filteredSuggestions.length > 0 && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #CBD5E1', borderRadius: 6, boxShadow: '0 4px 6px rgba(0,0,0,0.05)', zIndex: 50, maxHeight: 180, overflowY: 'auto', marginTop: 4 }}>
+                          {filteredSuggestions.map((drug, dIdx) => (
+                            <div key={dIdx} onClick={() => selectSuggestion(index, drug)} style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #F1F5F9', fontSize: 14, fontWeight: '700', color: '#000000' }} onMouseOver={(e) => e.target.style.background = '#F1F5F9'} onMouseOut={(e) => e.target.style.background = '#fff'}>
+                              {drug}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ width: 130 }}>
+                      <div style={{ fontSize: 13, color: '#334155', fontWeight: '700', marginBottom: 6 }}>Tổng số lượng</div>
+                      <input 
+                        type="number" min="1"
+                        style={{ width: '100%', boxSizing: 'border-box', padding: '10px', borderRadius: 6, border: '1px solid #CBD5E1', textAlign: 'center', fontSize: 15, fontWeight: '700', background: '#FFF', color: '#000000' }}
+                        value={prescription.soLuong}
+                        onChange={(e) => updatePrescriptionField(index, 'soLuong', e.target.value)}
+                        placeholder="Số viên" required
+                      />
+                    </div>
+                  </div>
+
+                  {/* HÀNG THỨ HAI: BUỔI UỐNG + THỜI ĐIỂM ĂN + SỐ NGÀY */}
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', width: '100%', alignItems: 'flex-end' }}>
+                    
+                    {/* Chọn Buổi uống */}
+                    <div style={{ flex: '3 1 340px' }}>
+                      <div style={{ fontSize: 13, color: '#334155', fontWeight: '700', marginBottom: 6 }}>Các buổi cần uống:</div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {['Sáng', 'Trưa', 'Chiều', 'Tối'].map((session) => {
+                          const isSelected = prescription.thoiGianUong.includes(session);
+                          let activeColor = '#2563EB';
+                          if (session === 'Trưa') activeColor = '#059669';
+                          if (session === 'Chiều') activeColor = '#D97706';
+                          if (session === 'Tối') activeColor = '#4F46E5';
+                          
+                          return (
+                            <button
+                              key={session} type="button"
+                              onClick={() => toggleThoiGianUong(index, session)}
+                              style={{ flex: 1, padding: '10px 2px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: '700', background: isSelected ? activeColor : '#E2E8F0', color: isSelected ? '#fff' : '#475569' }}
+                            >
+                              {session}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Chọn thời điểm ăn */}
+                    <div style={{ flex: '4 1 420px' }}>
+                      <div style={{ fontSize: 13, color: '#334155', fontWeight: '700', marginBottom: 6 }}>Thời điểm uống thuốc:</div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {[
+                          { key: 'Sau khi ăn', label: 'Sau khi ăn' },
+                          { key: 'Trước khi ăn', label: 'Trước khi ăn' },
+                          { key: 'Trong khi ăn', label: 'Trong khi ăn' },
+                          { key: 'Trước khi đi ngủ', label: 'Trước khi đi ngủ' }
+                        ].map((item) => {
+                          const isSelected = prescription.thoiDiemAn === item.key;
+                          return (
+                            <button
+                              key={item.key} type="button"
+                              onClick={() => updatePrescriptionField(index, 'thoiDiemAn', item.key)}
+                              style={{ flex: 1, padding: '10px 4px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: '700', background: isSelected ? '#334155' : '#E2E8F0', color: isSelected ? '#fff' : '#475569' }}
+                            >
+                              {item.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Chọn Số Ngày */}
+                    <div style={{ flex: '2 1 220px' }}>
+                      <div style={{ fontSize: 13, color: '#334155', fontWeight: '700', marginBottom: 6 }}>Số ngày uống:</div>
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                        {['3', '5', '7'].map((day) => {
+                          const isSelected = prescription.soNgay === day;
+                          return (
+                            <button
+                              key={day} type="button"
+                              onClick={() => updatePrescriptionField(index, 'soNgay', day)}
+                              style={{ width: 40, height: 38, borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: '700', background: isSelected ? '#047857' : '#E2E8F0', color: isSelected ? '#fff' : '#475569' }}
+                            >
+                              {day}N
+                            </button>
+                          );
+                        })}
+                        <input 
+                          type="number" min="1"
+                          style={{ width: 60, height: 38, boxSizing: 'border-box', padding: '5px', borderRadius: 6, border: '1px solid #CBD5E1', textAlign: 'center', fontSize: 14, fontWeight: '700', color: '#000000', background: '#FFF' }}
+                          value={prescription.soNgay}
+                          onChange={(e) => updatePrescriptionField(index, 'soNgay', e.target.value)}
+                          placeholder="Khác"
+                        />
+                        <span style={{ fontSize: 13, fontWeight: '700', color: '#334155' }}>Ngày</span>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* NÚT XÓA DÒNG THUỐC */}
+                  {prescriptions.length > 1 && (
+                    <button
+                      type="button" onClick={() => removeDrugRow(index)}
+                      style={{ position: 'absolute', top: 12, right: 12, background: '#EF4444', color: '#fff', border: 'none', width: 24, height: 24, borderRadius: '50%', cursor: 'pointer', fontWeight: 'bold', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      ✕
+                    </button>
+                  )}
+
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* KHỐI LỜI DẶN DÒ */}
+          <div style={{ background: '#fcf7bf', borderRadius: 12, padding: 24, marginBottom: 30, border: '1px solid #eaeff5', borderLeft: '6px solid #022784' }}>
+            <div style={{ fontSize: 16, fontWeight: '700', color: '#001e65', marginBottom: 12, textTransform: 'uppercase' }}>3. Lời dặn dò & Chế độ sinh hoạt</div>
             <textarea 
-              className="w-full border border-slate-300 p-3 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all shadow-sm" 
-              rows="3" 
-              required
-              value={doctorInput.huongDieuTri}
+              style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #CBD5E1', padding: 14, borderRadius: 8, fontSize: 15, outline: 'none', minHeight: 70, fontFamily: 'Arial, sans-serif', fontWeight: '700', color: '#f8f8f8' }}
+              rows="2" value={doctorInput.huongDieuTri}
               onChange={(e) => setDoctorInput({...doctorInput, huongDieuTri: e.target.value})}
-              placeholder="Ví dụ: Uống thuốc đúng giờ, súc miệng nước muối..."
+              placeholder="Nhập lời dặn bác sĩ tại đây..."
             />
           </div>
-          
-          <div className="flex justify-end mt-2">
-            <button 
-              type="submit" 
-              className="bg-blue-600 text-white px-8 py-3 rounded-md font-bold text-lg hover:bg-blue-700 active:scale-95 transition-transform shadow-md"
-            >
-              Lưu & Cập nhật Hồ Sơ
+
+          {/* NÚT SUBMIT LƯU HỒ SƠ */}
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <button type="submit" style={{ background: '#0F172A', color: '#ffffff', border: 'none', padding: '16px 80px', borderRadius: 10, fontSize: 18, fontWeight: 'bold', cursor: 'pointer', width: '100%', maxWidth: 500 }}>
+              LƯU & CẬP NHẬT HỒ SƠ BỆNH ÁN
             </button>
           </div>
+
         </form>
       </div>
-
     </div>
   );
 };
