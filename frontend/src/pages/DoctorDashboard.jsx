@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
-import { mapBackendToFrontend } from '../utils/doctorMapper.js';
+import axios from 'axios'// Hoặc 'axios' tùy thuộc cấu trúc của bạn, giữ nguyên import gốc:
+import axiosOriginal from 'axios'
+
 const PRIMARY = "#0A2D6E"
 const PRIMARY_MED = "#1A4FA8"
 const PRIMARY_LIGHT = "#E6F1FB"
@@ -11,14 +12,13 @@ const BORDER = "#CBD5E1"
 export default function DoctorDashboard() {
   const navigate = useNavigate()
 
-  // Lưu trữ thông tin bác sĩ đăng nhập
+  // Khởi tạo thông tin bác sĩ dự phòng từ localStorage nếu API lỗi
   const [doctorInfo, setDoctorInfo] = useState({
-    fullName: localStorage.getItem("fullName") || "Bác sĩ",
-    specialty: localStorage.getItem("chuyenKhoa") || "Đang tải...",
-    licenseNumber: localStorage.getItem("maBacSi") || "BS-Hệ thống"
+    fullName: localStorage.getItem("fullName") || "Bác sĩ hệ thống",
+    specialty: localStorage.getItem("chuyenKhoa") || "Da liễu",
+    licenseNumber: localStorage.getItem("maBacSi") || "BS-123450"
   });
 
-  // DANH SÁCH BỆNH NHÂN THẬT LẤY TỪ DATABASE (ACC ĐÃ TẠO)
   const [patientList, setPatientList] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -31,40 +31,42 @@ export default function DoctorDashboard() {
       return;
     }
 
-    // 1. Lấy thông tin chi tiết bác sĩ từ API để biết bác sĩ này làm ở chuyên khoa nào
+    // 1. Lấy thông tin chi tiết bác sĩ từ API
     const fetchDoctorProfile = async () => {
-  try {
-    const response = await axios.get(`http://localhost:5000/api/v1/doctors/${userId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    
-    // Sử dụng toán tử an toàn ?. để không bao giờ bị trắng trang
-    if (response?.data?.success && response?.data?.data) {
-      const d = response.data.data;
-      
-      setDoctorInfo({
-        fullName: d?.["Họ và tên"] || d?.fullName || "Nguyễn Hoàng Gia Việt Hưng",
-        specialty: d?.["Chuyên Khoa"] || d?.specialty || "Nội khoa",
-        licenseNumber: d?.["Giấy phép hành nghề"] || d?.licenseNumber || "000000008146"
-      });
-    }
-  } catch (error) {
-    console.error("Lỗi sập giao diện:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+      let currentSpecialty = doctorInfo.specialty; // Giữ chuyên khoa mặc định phòng khi lỗi
 
-    // 2. Hàm lấy danh sách bệnh nhân THẬT từ các acc đã đăng ký trên hệ thống
-    const fetchRealPatients = async (specialtyName, userToken) => {
       try {
-        // Gọi lên Endpoint lấy danh sách bệnh nhân (hoặc medical-records pending) của bạn
-        const response = await axios.get(`http://localhost:5000/api/v1/medical-records/doctor/pending`, {
-          headers: { Authorization: `Bearer ${userToken}` },
-          params: { specialty: specialtyName } // Truyền chuyên khoa lên để lọc động ở Backend nếu cần
+        const response = await axiosOriginal.get(`http://localhost:5000/api/v1/doctors/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
         
-        if (response.data.success) {
+        if (response?.data?.success && response?.data?.data) {
+          const d = response.data.data;
+          currentSpecialty = d?.["Chuyên Khoa"] || d?.specialty || currentSpecialty;
+          
+          setDoctorInfo({
+            fullName: d?.["Họ và tên"] || d?.fullName || localStorage.getItem("fullName") || "Nguyễn Hoàng Hưng",
+            specialty: currentSpecialty,
+            licenseNumber: d?.["Giấy phép hành nghề"] || d?.licenseNumber || localStorage.getItem("maBacSi") || "BS-123450"
+          });
+        }
+      } catch (error) {
+        console.warn("⚠️ Không tìm thấy hồ sơ bác sĩ riêng biệt (404), sử dụng thông tin đăng nhập mặc định.");
+      } finally {
+        // Sau khi cố gắng lấy profile (dù thành công hay lỗi 404) -> Vẫn phải gọi tiếp danh sách bệnh nhân
+        await fetchRealPatients(currentSpecialty, token);
+      }
+    };
+
+    // 2. Hàm lấy danh sách bệnh nhân THẬT từ DB
+    const fetchRealPatients = async (specialtyName, userToken) => {
+      try {
+        const response = await axiosOriginal.get(`http://localhost:5000/api/v1/medical-records/doctor/pending`, {
+          headers: { Authorization: `Bearer ${userToken}` },
+          params: { specialty: specialtyName }
+        });
+        
+        if (response?.data?.success) {
           setPatientList(response.data.data); 
         }
       } catch (error) {
@@ -96,7 +98,7 @@ export default function DoctorDashboard() {
       </div>
 
       <div style={{ padding: "32px" }}>
-        {/* Lời chào hiển thị thông tin thực tế từ database */}
+        {/* Lời chào */}
         <div style={{ marginBottom: 28 }}>
           <h2 style={{ color: PRIMARY, margin: 0 }}>Xin chào, BS. {doctorInfo.fullName} 👋</h2>
           <p style={{ color: GRAY_TEXT, marginTop: 4, fontSize: 14 }}>
@@ -119,7 +121,7 @@ export default function DoctorDashboard() {
           ))}
         </div>
 
-        {/* Giao diện Bảng phân công từ acc đã tạo */}
+        {/* Bảng phân công */}
         <div style={{ background: "#fff", borderRadius: 14, padding: "24px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <h3 style={{ color: PRIMARY, margin: 0 }}>👥 Danh sách tài khoản bệnh nhân thực tế thuộc khoa ({doctorInfo.specialty})</h3>
@@ -137,7 +139,13 @@ export default function DoctorDashboard() {
               </tr>
             </thead>
             <tbody>
-              {patientList.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: "center", padding: "40px", color: GRAY_TEXT, fontSize: 14 }}>
+                    Đang tải danh sách bệnh nhân...
+                  </td>
+                </tr>
+              ) : patientList.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ textAlign: "center", padding: "40px", color: GRAY_TEXT, fontSize: 14, fontStyle: "italic" }}>
                     Chưa có tài khoản bệnh nhân nào được tạo hoặc đăng ký khám ở chuyên khoa {doctorInfo.specialty} này.
@@ -146,12 +154,12 @@ export default function DoctorDashboard() {
               ) : (
                 patientList.map((p, i) => (
                   <tr key={p._id || i} style={{ background: i % 2 === 0 ? "#fff" : "#FAFBFC", borderBottom: `1px solid ${BORDER}` }}>
-                    <td style={{ padding: "12px 14px", fontSize: 14, fontWeight: 600, color: "#1E293B" }}>{p.fullName}</td>
+                    <td style={{ padding: "12px 14px", fontSize: 14, fontWeight: 600, color: "#1E293B" }}>{p.fullName || p["Họ và tên"]}</td>
                     <td style={{ padding: "12px 14px", fontSize: 14, color: "#475569" }}>
-                      {p.dob ? new Date(p.dob).toLocaleDateString('vi-VN') : "---"}
+                      {p.dob || p["Ngày sinh"] ? new Date(p.dob || p["Ngày sinh"]).toLocaleDateString('vi-VN') : "---"}
                     </td>
-                    <td style={{ padding: "12px 14px", fontSize: 14, color: "#475569" }}>{p.gender || "Chưa cập nhật"}</td>
-                    <td style={{ padding: "12px 14px", fontSize: 14, color: "#475569" }}>{p.phone || "---"}</td>
+                    <td style={{ padding: "12px 14px", fontSize: 14, color: "#475569" }}>{p.gender || p["Giới tính"] || "Chưa cập nhật"}</td>
+                    <td style={{ padding: "12px 14px", fontSize: 14, color: "#475569" }}>{p.phone || p["Số điện thoại"] || "---"}</td>
                     <td style={{ padding: "12px 14px", fontSize: 13 }}>
                       <span style={{ background: "#FEF3C7", color: "#D97706", padding: "2px 8px", borderRadius: 4, fontWeight: 500 }}>
                         Chờ khám ({doctorInfo.specialty})

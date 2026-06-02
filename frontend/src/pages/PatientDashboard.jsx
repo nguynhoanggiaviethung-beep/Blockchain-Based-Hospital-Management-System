@@ -26,7 +26,7 @@ export default function PatientDashboard() {
   const [historyList, setHistoryList] = useState([])
   const [loadingHistory, setLoadingHistory] = useState(true)
 
-  // 🔥 THÊM STATE ĐỂ TƯƠNG TÁC: "all" (mặc định hiện hết), "luotKham" (chỉ hiện lượt khám), "donThuoc" (chỉ hiện đơn thuốc)
+  // State bộ lọc lịch sử khám
   const [activeStatFilter, setActiveStatFilter] = useState("all")
 
   const [formBasic, setFormBasic] = useState({
@@ -35,6 +35,13 @@ export default function PatientDashboard() {
 
   const [formHealth, setFormHealth] = useState({
     nhomMau: "", tienSuBenh: "", diUng: "", trieuChung: "", ghiChu: ""
+  })
+
+  // State quản lý form đăng ký khám bệnh mới
+  const [formAppointment, setFormAppointment] = useState({
+    specialty: "Nội khoa",
+    date: "",
+    reason: ""
   })
 
   const headers = {
@@ -144,12 +151,53 @@ export default function PatientDashboard() {
     }
   }
 
+  // 🔥 HÀM ĐÃ ĐƯỢC SỬA: Đồng bộ lưu lịch hẹn trực tiếp vào Profile Sức Khỏe của Bệnh nhân
+  const handleBookAppointment = async (e) => {
+    e.preventDefault()
+    setSaving(true); setError("")
+    try {
+      // Tận dụng API cập nhật hồ sơ sức khỏe có sẵn để gửi thông tin đăng ký khám
+      const res = await fetch(`${BASE_URL}/patients/${userId}/health-profile`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({
+          nhomMau: formHealth.nhomMau,
+          tienSuBenh: formHealth.tienSuBenh,
+          diUng: formHealth.diUng,
+          trieuChung: formAppointment.reason, // Đưa triệu chứng/lý do khám vào form sức khỏe
+          ghiChu: `Đăng ký khám chuyên khoa: ${formAppointment.specialty} - Dự kiến ngày: ${formAppointment.date}` // Lưu lịch hẹn vào mục Ghi chú
+        })
+      })
+      
+      const data = await res.json()
+      if (data.success) {
+        setPatient(data.data) // Cập nhật lại dữ liệu hiển thị toàn màn hình
+        // Đồng bộ lại state form hồ sơ sức khỏe cục bộ
+        setFormHealth({
+          ...formHealth,
+          trieuChung: formAppointment.reason,
+          ghiChu: `Đăng ký khám chuyên khoa: ${formAppointment.specialty} - Dự kiến ngày: ${formAppointment.date}`
+        })
+        
+        showSuccess("Đăng ký lịch khám bệnh thành công! Thông tin đã được đồng bộ vào hồ sơ.")
+        setFormAppointment({ specialty: "Nội khoa", date: "", reason: "" }) // Reset form đăng ký lịch
+        setTab("info") // Chuyển ngay về tab thông tin cơ bản để người dùng nhìn thấy kết quả
+      } else {
+        setError(data.message || "Đăng ký khám thất bại!")
+      }
+    } catch (err) {
+      console.error(err)
+      setError("Lỗi kết nối đến máy chủ khi đăng ký lịch khám!")
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleLogout = () => { localStorage.clear(); navigate("/") }
 
-  // Hàm xử lý khi click vào ô thống kê để cuộn xuống xem nhanh
   const handleStatCardClick = (filterType) => {
     setActiveStatFilter(filterType)
-    setTab("info") // Đảm bảo luôn chuyển về tab info để xem danh sách lịch sử
+    setTab("info") 
     const element = document.getElementById("medical-history-section")
     if (element) {
       element.scrollIntoView({ behavior: "smooth" })
@@ -174,6 +222,7 @@ export default function PatientDashboard() {
 
   const TABS = [
     { key: "info", label: "📄 Thông tin & Lịch sử" },
+    { key: "register", label: "📅 Đăng ký khám" }, 
     { key: "edit", label: "✏️ Cập nhật" },
     { key: "health", label: "🏥 Sức khỏe" },
   ]
@@ -198,7 +247,7 @@ export default function PatientDashboard() {
           <p style={{ color: GRAY_TEXT, marginTop: 4 }}>Đây là trang quản lý thông tin sức khỏe và lịch sử khám bệnh của bạn</p>
         </div>
 
-        {/* 🔥 Ô THỐNG KÊ CÓ TÍNH NĂNG TƯƠNG TÁC KHI CLICK */}
+        {/* Thống kê */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, marginBottom: 32 }}>
           {[
             { id: "luotKham", icon: "📋", label: "Lượt khám", value: loadingHistory ? "..." : historyList.length },
@@ -209,13 +258,13 @@ export default function PatientDashboard() {
             return (
               <div 
                 key={card.label} 
-                onClick={() => handleStatCardClick(card.id)} // Kích hoạt sự kiện bấm tương tác
+                onClick={() => handleStatCardClick(card.id)} 
                 style={{ 
                   background: WHITE, 
                   borderRadius: 14, 
                   padding: "24px", 
                   boxShadow: isSelected ? `0 0 0 2px ${PRIMARY_MED}, 0 4px 20px rgba(26,79,168,0.15)` : "0 2px 12px rgba(0,0,0,0.07)", 
-                  cursor: "pointer", // Thêm con trỏ bàn tay khi di chuột vào
+                  cursor: "pointer", 
                   transition: "all 0.2s ease",
                   transform: isSelected ? "scale(1.02)" : "scale(1)"
                 }}
@@ -230,9 +279,8 @@ export default function PatientDashboard() {
           })}
         </div>
 
-        {/* Card với 3 tab */}
+        {/* Giao diện các Tab điều hướng */}
         <div style={{ background: WHITE, borderRadius: 14, boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
-          {/* Tab buttons */}
           <div style={{ display: "flex", borderBottom: `1px solid ${BORDER}` }}>
             {TABS.map(({ key, label }) => (
               <button key={key} onClick={() => { setTab(key); setError(""); setActiveStatFilter("all"); }} style={{
@@ -247,7 +295,7 @@ export default function PatientDashboard() {
           </div>
 
           <div style={{ padding: "24px" }}>
-            {/* Thông báo */}
+            {/* Alert Messages */}
             {saveSuccess && (
               <div style={{ background: "#E6F9F0", color: "#0F6E56", borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontSize: 13 }}>
                 ✅ {saveSuccess}
@@ -280,11 +328,11 @@ export default function PatientDashboard() {
                     <Field label="Nhóm máu" value={patient?.nhomMau} />
                     <Field label="Dị ứng" value={patient?.diUng} />
                     <Field label="Tiền sử bệnh" value={patient?.tienSuBenh} />
-                    <Field label="Triệu chứng" value={patient?.trieuChung} />
-                    <Field label="Ghi chú" value={patient?.ghiChu} />
+                    <Field label="Triệu chứng hiện tại" value={patient?.trieuChung} />
+                    <Field label="Thông tin lịch hẹn" value={patient?.ghiChu} />
                   </div>
 
-                  {/* 🔥 PHẦN LỊCH SỬ KHÁM CÓ ĐỊNH DANH ID ĐỂ TỰ ĐỘNG CUỘN XUỐNG KHI CLICK */}
+                  {/* Lịch sử khám bệnh */}
                   <div id="medical-history-section" style={{ borderTop: `1px solid ${BORDER}`, paddingTop: "20px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                       <h4 style={{ color: PRIMARY, margin: 0 }}>
@@ -327,14 +375,12 @@ export default function PatientDashboard() {
                             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, fontSize: 14 }}>
                               <div><strong>Bác sĩ chuyên môn phụ trách:</strong> {record.doctorId?.fullName ? `BS. ${record.doctorId.fullName}` : "Bác sĩ bệnh viện"}</div>
                               
-                              {/* 📋 Nếu filter là "all" hoặc "luotKham" -> Hiển thị Chẩn đoán chuyên môn */}
                               {(activeStatFilter === "all" || activeStatFilter === "luotKham") && (
                                 <div style={{ marginTop: 4 }}>
                                   <strong>Kết luận / Chẩn đoán lâm sàng:</strong> <span style={{ color: "#0A2D6E", fontWeight: 600 }}>{record.chanDoanChuyenMon || "Chưa có kết luận"}</span>
                                 </div>
                               )}
                               
-                              {/* 💊 Nếu filter là "all" hoặc "donThuoc" -> Hiển thị Đơn thuốc chi tiết */}
                               {(activeStatFilter === "all" || activeStatFilter === "donThuoc") && (
                                 <div style={{ whiteSpace: "pre-wrap", background: "#FFFFFF", padding: "12px", borderRadius: 6, border: `1px solid ${BORDER}`, marginTop: 6, fontSize: 13, color: "#1E293B" }}>
                                   <strong style={{ color: "#1A4FA8" }}>💊 Chi tiết hướng điều trị & Đơn thuốc:</strong><br />
@@ -349,6 +395,73 @@ export default function PatientDashboard() {
                   </div>
                 </>
               )
+            )}
+
+            {/* TAB: ĐĂNG KÝ KHÁM BỆNH */}
+            {tab === "register" && (
+              <div style={{ maxWidth: 600 }}>
+                <h4 style={{ color: PRIMARY, marginTop: 0, marginBottom: 20 }}>Đặt lịch hẹn khám trực tuyến</h4>
+                <form onSubmit={handleBookAppointment}>
+                  
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={labelStyle}>Chọn Chuyên Khoa Phù Hợp</label>
+                    <select 
+                      value={formAppointment.specialty}
+                      onChange={e => setFormAppointment(p => ({ ...p, specialty: e.target.value }))}
+                      style={inputStyle}
+                    >
+                      <option value="Nội khoa">Nội khoa tổng quát</option>
+                      <option value="Ngoại khoa">Ngoại khoa chuyên sâu</option>
+                      <option value="Nhi khoa">Nhi khoa (Trẻ em)</option>
+                      <option value="Sản phụ khoa">Sản phụ khoa</option>
+                      <option value="Tai Mũi Họng">Tai Mũi Họng</option>
+                      <option value="Răng Hàm Mặt">Răng Hàm Mặt</option>
+                      <option value="Da liễu">Da liễu</option>
+                    </select>
+                  </div>
+
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={labelStyle}>Chọn Ngày Muốn Khám</label>
+                    <input 
+                      type="date" 
+                      required
+                      min={new Date().toISOString().split('T')[0]} 
+                      value={formAppointment.date}
+                      onChange={e => setFormAppointment(p => ({ ...p, date: e.target.value }))}
+                      style={inputStyle}
+                    >
+                    </input>
+                  </div>
+
+                  <div style={{ marginBottom: 24 }}>
+                    <label style={labelStyle}>Lý do khám / Triệu chứng lâm sàng</label>
+                    <textarea 
+                      value={formAppointment.reason}
+                      onChange={e => setFormAppointment(p => ({ ...p, reason: e.target.value }))}
+                      placeholder="VD: Đau đầu dai dẳng, sốt nhẹ về chiều hoặc đặt lịch tái khám định kỳ..."
+                      rows={4}
+                      style={{ ...inputStyle, resize: "vertical" }}
+                      required
+                    />
+                  </div>
+
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <button type="submit" disabled={saving} style={{
+                      padding: "11px 28px", borderRadius: 8, border: "none",
+                      background: saving ? "#93B8E8" : `linear-gradient(90deg, ${PRIMARY} 0%, ${PRIMARY_MED} 100%)`,
+                      color: WHITE, fontSize: 14, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer"
+                    }}>
+                      {saving ? "Đang xử lý gửi..." : "📅 Xác nhận đăng ký"}
+                    </button>
+                    <button type="button" onClick={() => setTab("info")} style={{
+                      padding: "11px 24px", borderRadius: 8, border: `1.5px solid ${BORDER}`,
+                      background: WHITE, fontSize: 14, cursor: "pointer", color: GRAY_TEXT
+                    }}>
+                      Hủy bỏ
+                    </button>
+                  </div>
+                </form>
+              </div>
             )}
 
             {/* Tab: Cập nhật thông tin cơ bản */}

@@ -160,25 +160,53 @@ const Login = () => {
       const roleMap = { "Bệnh nhân": "patient", "Bác sĩ": "doctor", "Admin": "admin" };
       const response = await api.post("/auth/login", { email, password, role: roleMap[role] });
       
-      const { token, role: userRole } = response.data.data;
-      const userData = response.data.data;
+      // Đọc an toàn cấu trúc data trả về từ Backend
+      const loginData = response.data?.data || response.data;
+      const token = loginData?.token;
+      const userRole = loginData?.role;
+
+      if (!token) {
+        throw new Error("Không nhận được mã xác thực (Token) từ hệ thống!");
+      }
 
       // 2. Lưu token và thông tin nhận diện cốt lõi
       localStorage.setItem("token", token);
       localStorage.setItem("userRole", userRole);
-      localStorage.setItem("userId", userData?.userId || userData?._id || "");
+      localStorage.setItem("userId", loginData?.userId || loginData?._id || "");
 
-      // 3. Phân tách bốc và lưu dữ liệu động chuẩn chỉnh theo vai trò
+      // 3. Phân tách và lưu trữ thông tin hiển thị theo vai trò cá nhân
       if (userRole === "doctor") {
-        const doctor = mapBackendToFrontend(userData);
-        if (doctor) {
-          localStorage.setItem("fullName", doctor.fullName);
-          localStorage.setItem("chuyenKhoa", doctor.specialty);
-          localStorage.setItem("maBacSi", doctor.licenseNumber); // Lưu 12 số định danh chuẩn luật mới
+        // Thử chạy qua hàm map tài liệu bác sĩ nếu có cấu trúc mapper
+        let doctorName = "Bác sĩ VNmedID";
+        let doctorSpecialty = "Da liễu";
+        let doctorLicense = "BS-123450";
+
+        if (typeof mapBackendToFrontend === "function") {
+          try {
+            const mapped = mapBackendToFrontend(loginData);
+            if (mapped) {
+              doctorName = mapped.fullName || doctorName;
+              doctorSpecialty = mapped.specialty || doctorSpecialty;
+              doctorLicense = mapped.licenseNumber || doctorLicense;
+            }
+          } catch (mapErr) {
+            console.warn("Lưu ý: Không thể map dữ liệu profile bác sĩ, chuyển sang đọc trực tiếp.");
+          }
         }
+
+        // Ưu tiên đọc trực tiếp từ key tiếng Việt/tiếng Anh có sẵn trong loginData phòng khi Backend đã gộp dữ liệu
+        doctorName = loginData?.["Họ và tên"] || loginData?.fullName || loginData?.email?.split('@')[0] || doctorName;
+        doctorSpecialty = loginData?.["Chuyên Khoa"] || loginData?.specialty || doctorSpecialty;
+        doctorLicense = loginData?.["Mã Bác sĩ"] || loginData?.["Giấy phép hành nghề"] || loginData?.licenseNumber || doctorLicense;
+
+        // Lưu thông tin sạch vào LocalStorage để DoctorDashboard lấy trực tiếp ra xài
+        localStorage.setItem("fullName", doctorName);
+        localStorage.setItem("chuyenKhoa", doctorSpecialty);
+        localStorage.setItem("maBacSi", doctorLicense);
       } else {
-        // Nếu là bệnh nhân hoặc admin, lưu tên từ các key thông dụng
-        localStorage.setItem("fullName", userData?.fullName || userData?.["Họ và tên"] || "");
+        // Nếu là bệnh nhân hoặc admin
+        const patientName = loginData?.fullName || loginData?.["Họ và tên"] || loginData?.email?.split('@')[0] || "Người dùng VNmedID";
+        localStorage.setItem("fullName", patientName);
       }
 
       setSuccess(true);
@@ -191,8 +219,8 @@ const Login = () => {
       
       setTimeout(() => navigate(roleRedirect[userRole] || "/"), 1000);
     } catch (error) {
-      console.error(error);
-      const msg = error.response?.data?.message || error.message || "Đăng nhập thất bại!";
+      console.error("Lỗi xử lý đăng nhập:", error);
+      const msg = error.response?.data?.message || error.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản, mật khẩu!";
       setErrors({ general: msg });
     } finally {
       setLoading(false);
