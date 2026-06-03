@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 
 const register = async (req, res) => {
   try {
-    const { fullName, email, password, role } = req.body;
+    const { fullName, email, password, role, dob, gender, phone, specialty, doctorId, licenseNumber } = req.body;
     const db = mongoose.connection.db;
 
     const existing = await db.collection('users').findOne({ email });
@@ -13,16 +13,33 @@ const register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    const result = await db.collection('users').insertOne({
-      fullName, email, password: hashedPassword, role,
-      createdAt: new Date(), updatedAt: new Date()
+    const commonId = new mongoose.Types.ObjectId();
+    await db.collection('users').insertOne({
+      _id: commonId,
+      fullName, email, password: hashedPassword,
+      role: role || 'doctor',
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
+    if (role === 'doctor') {
+      await db.collection('doctors').insertOne({
+        _id: commonId,
+        fullName,
+        email,
+        dob,
+        gender,
+        phone,
+        specialty,
+        licenseNumber,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    }
 
     return res.status(201).json({
       success: true,
-      message: 'Tạo tài khoản thành công!',
-      data: { userId: result.insertedId, fullName, email, role }
+      message: 'Tạo tài khoản thành công và đã đồng bộ dữ liệu vai trò !',
+      data: { userId: commonId, fullName, email, role }
     });
 
   } catch (error) {
