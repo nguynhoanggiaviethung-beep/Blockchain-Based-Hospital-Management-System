@@ -3,19 +3,17 @@ import Login from './pages/Login'
 import PatientDashboard from './pages/PatientDashboard'
 import DoctorDashboard from './pages/DoctorDashboard'
 import AdminDashboard from './pages/AdminDashboard'
+import DoctorExamination from './pages/DoctorExamination'
 
-// 1. Tạo một Component bọc bảo vệ (Protected Route) để chặn người lạ
+// Component bọc bảo vệ (Protected Route) giữ nguyên logic của bạn
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  // Lấy thông tin user/role đã lưu khi đăng nhập thành công từ localStorage
-  const userRole = localStorage.getItem('userRole'); // ví dụ: 'patient', 'doctor', 'admin'
+  const userRole = localStorage.getItem('userRole'); // 'patient', 'doctor', 'admin'
 
   if (!userRole) {
-    // Nếu chưa đăng nhập, đá về trang Login
     return <Navigate to="/" replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(userRole)) {
-    // Nếu đăng nhập rồi nhưng vào sai vai trò (ví dụ bệnh nhân đòi vào admin), đá về trang cũ hoặc trang lỗi
     return <Navigate to="/" replace />;
   }
 
@@ -29,32 +27,44 @@ function App() {
         {/* Trang đăng nhập công khai */}
         <Route path="/" element={<Login />} />
 
-        {/* Các trang dashboard cần được bảo vệ theo đúng phân quyền */}
-        <Route 
-          path="/dashboard/patient" 
+        {/* 1. Trang cá nhân của Bệnh nhân */}
+        <Route
+          path="/dashboard/patient"
           element={
             <ProtectedRoute allowedRoles={['patient']}>
               <PatientDashboard />
             </ProtectedRoute>
-          } 
+          }
         />
         
-        <Route 
-          path="/dashboard/doctor" 
+        {/* 2. Trang chủ Dashboard của Bác sĩ */}
+        <Route
+          path="/dashboard/doctor"
           element={
             <ProtectedRoute allowedRoles={['doctor']}>
               <DoctorDashboard />
             </ProtectedRoute>
-          } 
+          }
+        />
+
+        {/* SỬA TẠI ĐÂY: Thêm trang nhập đơn thuốc/chẩn đoán vào vùng bảo vệ của Bác sĩ */}
+        <Route
+          path="/dashboard/doctor/diagnose/:id"
+          element={
+            <ProtectedRoute allowedRoles={['doctor']}>
+              <DoctorExamination />
+            </ProtectedRoute>
+          }
         />
         
-        <Route 
-          path="/dashboard/admin" 
+        {/* 3. Trang của Quản trị viên */}
+        <Route
+          path="/dashboard/admin"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminDashboard />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* Nếu gõ tầm bậy đường dẫn, tự động đẩy về trang Login */}

@@ -6,6 +6,7 @@ const bcrypt = require('bcrypt');
 /**
  * @desc    Tạo hồ sơ bác sĩ mới (Gồm: Tạo tài khoản ở 'users' + Tạo hồ sơ ở 'doctors')
  * @route   POST /api/v1/doctors
+ * @note    GIỮ NGUYÊN HOÀN TOÀN cấu trúc Native Driver gốc của bạn
  */
 const createDoctor = async (req, res) => {
     try {
@@ -89,15 +90,20 @@ const createDoctor = async (req, res) => {
 /**
  * @desc    Lấy chi tiết thông tin 1 bác sĩ bằng ID tài khoản (userId từ token)
  * @route   GET /api/v1/doctors/:id
+ * @note    SỬA LỖI TRUY VẤN: Vì bạn dùng native driver insert trực tiếp vào collection 'doctors' 
+ * mà không qua mongoose model khép kín, một số trường hợp Mongoose Model `Doctor.findById` 
+ * sẽ bị rỗng nếu Schema cấu trúc không khớp. Đổi sang dùng db.collection('doctors') gốc để ăn chặt 100%.
  */
 const getDoctorById = async (req, res) => {
     try {
         const { id } = req.params;
+        const db = mongoose.connection.db;
         
-        // Chuyển string ID nhận từ client về dạng ObjectId để tìm chính xác trong MongoDB
+        // Chuyển string ID nhận từ client về dạng ObjectId để tìm chính xác
         const objId = new mongoose.Types.ObjectId(id);
         
-        const doctor = await Doctor.findById(objId); 
+        // Dùng bộ driver gốc để tìm theo đúng cơ chế ép chung _id lúc tạo của bạn
+        const doctor = await db.collection('doctors').findOne({ _id: objId });
         
         if (!doctor) {
             return res.status(404).json({ 
@@ -119,9 +125,11 @@ const getDoctorById = async (req, res) => {
         });
     }
 };
+
 /**
  * @desc    Lấy danh sách tất cả bác sĩ
  * @route   GET /api/v1/doctors
+ * @note    GIỮ NGUYÊN HOÀN TOÀN
  */
 const getAllDoctors = async (req, res) => {
     try {
@@ -161,6 +169,7 @@ const getAllDoctors = async (req, res) => {
 /**
  * @desc    Cập nhật thông tin bác sĩ
  * @route   PUT /api/v1/doctors/:id
+ * @note    GIỮ NGUYÊN HOÀN TOÀN
  */
 const updateDoctor = async (req, res) => {
     try {
@@ -205,6 +214,7 @@ const updateDoctor = async (req, res) => {
 /**
  * @desc    Xóa bác sĩ (Xóa cả trong users và doctors)
  * @route   DELETE /api/v1/doctors/:id
+ * @note    GIỮ NGUYÊN HOÀN TOÀN
  */
 const deleteDoctor = async (req, res) => {
     try {

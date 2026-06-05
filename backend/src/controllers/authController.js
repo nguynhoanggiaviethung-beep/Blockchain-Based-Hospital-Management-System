@@ -4,8 +4,12 @@ const bcrypt = require('bcrypt');
 
 const register = async (req, res) => {
   try {
+<<<<<<< HEAD
     const { fullName, email, password, role, dob, gender, phone, address, citizenId } = req.body;
 
+=======
+    const { fullName, email, password, role, dob, gender, phone, specialty, doctorId, licenseNumber } = req.body;
+>>>>>>> e7c95ccc407151f58352ceaa695cf480dcd46000
     const db = mongoose.connection.db;
 
     const existing = await db.collection('users').findOne({ email });
@@ -13,6 +17,7 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email đã tồn tại!' });
     }
 
+<<<<<<< HEAD
     if (role === 'patient' && citizenId) {
       const cccdDaTon = await db.collection('patients').findOne({ citizenId });
       if (cccdDaTon) {
@@ -28,9 +33,31 @@ const register = async (req, res) => {
       fullName, email,
       password: hashedPassword,
       role,
+=======
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const commonId = new mongoose.Types.ObjectId();
+    await db.collection('users').insertOne({
+      _id: commonId,
+      fullName, email, password: hashedPassword,
+      role: role || 'doctor',
+>>>>>>> e7c95ccc407151f58352ceaa695cf480dcd46000
       createdAt: new Date(),
       updatedAt: new Date()
     });
+    if (role === 'doctor') {
+      await db.collection('doctors').insertOne({
+        _id: commonId,
+        fullName,
+        email,
+        dob,
+        gender,
+        phone,
+        specialty,
+        licenseNumber,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    }
 
     if (role === 'patient') {
       await db.collection('patients').insertOne({
@@ -49,7 +76,11 @@ const register = async (req, res) => {
 
     return res.status(201).json({
       success: true,
+<<<<<<< HEAD
       message: 'Tạo tài khoản thành công!',
+=======
+      message: 'Tạo tài khoản thành công và đã đồng bộ dữ liệu vai trò !',
+>>>>>>> e7c95ccc407151f58352ceaa695cf480dcd46000
       data: { userId: commonId, fullName, email, role }
     });
 
