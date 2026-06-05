@@ -1,6 +1,6 @@
 {
   "contractName": "VNmedID_Core",
-  "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "address": "0xf0322897126173E4DD8E454355dB8C52c57ECb7b",
   "abi": [
     {
       "type": "constructor",
@@ -229,8 +229,8 @@
       "outputs": []
     }
   ],
-  "network": "localhost",
-  "chainId": "31337",
-  "deployedAt": "2026-06-05T04:54:30.197Z",
-  "deploymentTx": "0x7d19230b90541b965e17418653966e53f4c1764c70b7e009d7a3d1bbb966d8d5"
+  "network": "sepolia",
+  "chainId": "11155111",
+  "deployedAt": "2026-06-05T17:16:01.581Z",
+  "deploymentTx": "0xd8b7863a235443fbb56c034daa8b74691511247d0a7d9d379380b5b31ca9ee2c"
 }

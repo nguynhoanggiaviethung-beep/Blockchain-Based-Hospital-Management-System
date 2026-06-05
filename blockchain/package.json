@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "compile": "hardhat compile",
-    "node": "hardhat node",
-    "deploy:local": "hardhat run scripts/deploy.ts --network localhost"
+  "compile": "hardhat compile",
+  "node": "hardhat node",
+  "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
+  "deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers-chai-matchers": "^3.0.10",
@@ -19,6 +20,7 @@
     "typescript": "~6.0.3"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
     "ethers": "^6.16.0"
   }
 }
