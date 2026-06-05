@@ -1,87 +1,109 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+contract VNmedID_Core {
+    address public admin;
 
-// Interface BE/FE yêu cầu (Đã xóa bỏ hoàn toàn phần thanh toán)
-interface IVNmedID {
-    struct AccessLog {
-        address doctorWallet;
-        bool isAllowed;
-        uint256 timestamp;
+    // patientId => doctorWallet => permission status
+    mapping(string => mapping(address => bool)) public doctorAccess;
+
+    // patientId => list of medical record hashes
+    mapping(string => string[]) private medicalRecords;
+
+    event AccessGranted(
+        string patientId,
+        address doctorWallet,
+        uint256 timestamp
+    );
+
+    event AccessRevoked(
+        string patientId,
+        address doctorWallet,
+        uint256 timestamp
+    );
+
+    event RecordAdded(
+        string patientId,
+        address doctorWallet,
+        string recordHash,
+        uint256 timestamp
+    );
+
+    constructor() {
+        admin = msg.sender;
     }
-
-
-    struct MedicalRecord {
-        string recordHash;
-        uint256 timestamp;
-    }
-
-
-    event AccessGranted(string indexed patientId, address indexed doctorWallet, uint256 timestamp);
-    event AccessRevoked(string indexed patientId, address indexed doctorWallet, uint256 timestamp);
-    event RecordAdded(string indexed patientId, string recordHash, uint256 timestamp);
-
-
-    function grantAccess(string calldata _patientId, address _doctorWallet) external;
-    function revokeAccess(string calldata _patientId, address _doctorWallet) external;
-    function checkPermission(string calldata _patientId, address _doctorWallet) external view returns (bool);
-    function addRecordHash(string calldata _patientId, string calldata _recordHash) external;
-    function getRecordHashes(string calldata _patientId) external view returns (string[] memory);
-}
-
-
-contract VNmedID_Core is IVNmedID {
-   
-    address public backendAdmin; // ví deploy code
-
-
-    // patientId => doctorWallet => status
-    mapping(string => mapping(address => bool)) private doctorAccess;
-
-
-    // patientId => mảng IPFS hash
-    mapping(string => string[]) private patientRecords;
-
 
     modifier onlyAdmin() {
-        require(msg.sender == backendAdmin, "Not Admin");
+        require(msg.sender == admin, "Only admin can do this action");
         _;
     }
 
-
-    constructor() {
-        backendAdmin = msg.sender;
+    modifier onlyAuthorizedDoctor(string memory patientId) {
+        require(
+            doctorAccess[patientId][msg.sender] == true,
+            "Doctor does not have permission"
+        );
+        _;
     }
 
+    // Admin grants access to a doctor for a specific patient
+    function grantAccess(
+        string memory patientId,
+        address doctorWallet
+    ) public onlyAdmin {
+        require(doctorWallet != address(0), "Invalid doctor address");
 
-    function grantAccess(string calldata _patientId, address _doctorWallet) external override onlyAdmin {
-        require(!doctorAccess[_patientId][_doctorWallet], "Already granted");
-       
-        doctorAccess[_patientId][_doctorWallet] = true;
-        emit AccessGranted(_patientId, _doctorWallet, block.timestamp);
+        doctorAccess[patientId][doctorWallet] = true;
+
+        emit AccessGranted(patientId, doctorWallet, block.timestamp);
     }
 
+    // Admin revokes access from a doctor
+    function revokeAccess(
+        string memory patientId,
+        address doctorWallet
+    ) public onlyAdmin {
+        doctorAccess[patientId][doctorWallet] = false;
 
-    function revokeAccess(string calldata _patientId, address _doctorWallet) external override onlyAdmin {
-        require(doctorAccess[_patientId][_doctorWallet], "No access to revoke");
-       
-        doctorAccess[_patientId][_doctorWallet] = false;
-        emit AccessRevoked(_patientId, _doctorWallet, block.timestamp);
+        emit AccessRevoked(patientId, doctorWallet, block.timestamp);
     }
 
-
-    function checkPermission(string calldata _patientId, address _doctorWallet) external view override returns (bool) {
-        return doctorAccess[_patientId][_doctorWallet];
+    // Anyone can check whether a doctor has permission or not
+    function checkPermission(
+        string memory patientId,
+        address doctorWallet
+    ) public view returns (bool) {
+        return doctorAccess[patientId][doctorWallet];
     }
 
-
-    function addRecordHash(string calldata _patientId, string calldata _recordHash) external override onlyAdmin {
-        patientRecords[_patientId].push(_recordHash);
-        emit RecordAdded(_patientId, _recordHash, block.timestamp);
+    // Doctor checks his/her own permission
+    function checkMyPermission(
+        string memory patientId
+    ) public view returns (bool) {
+        return doctorAccess[patientId][msg.sender];
     }
 
+    // Only authorized doctor can add a medical record hash
+    function addRecordHash(
+        string memory patientId,
+        string memory recordHash
+    ) public onlyAuthorizedDoctor(patientId) {
+        require(bytes(recordHash).length > 0, "Record hash cannot be empty");
 
-    function getRecordHashes(string calldata _patientId) external view override returns (string[] memory) {
-        return patientRecords[_patientId];
+        medicalRecords[patientId].push(recordHash);
+
+        emit RecordAdded(
+            patientId,
+            msg.sender,
+            recordHash,
+            block.timestamp
+        );
+    }
+
+    // Only authorized doctor can view medical record hashes
+    function getRecordHashes(
+        string memory patientId
+    ) public view onlyAuthorizedDoctor(patientId) returns (string[] memory) {
+        return medicalRecords[patientId];
     }
 }
