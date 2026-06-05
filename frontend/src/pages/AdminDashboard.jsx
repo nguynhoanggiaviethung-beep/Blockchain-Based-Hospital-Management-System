@@ -1,89 +1,106 @@
-import { useNavigate } from 'react-router-dom'
-import { mockPatientList, mockDoctorList } from '../mock/mockData'
-
-const PRIMARY = "#0A2D6E"
-const PRIMARY_LIGHT = "#E6F1FB"
+import React from 'react';
+import { Icon } from '../components/ui';
 
 export default function AdminDashboard() {
-  const navigate = useNavigate()
+  // Lấy tên admin từ bộ nhớ cục bộ (localStorage), mặc định là "Quản trị viên" nếu chưa có
+  const fullName = localStorage.getItem("fullName") || "Quản trị viên";
 
-  const fullName = localStorage.getItem("fullName") || "Quản trị viên"
+  // ─── DỮ LIỆU MOCK (GIÀN GIÁO UI) ──────────────────────────────────────────
+  // TODO (Backend): Gọi API lấy thống kê tổng quan (vd: dashboardApi.getSummary) và thay thế mảng này
+  const stats = [
+    { label: "Tổng bệnh nhân", value: "1,245", icon: "👥", trend: "+12% so với tháng trước" },
+    { label: "Tổng bác sĩ", value: "48", icon: "🩺", trend: "Trực hôm nay: 15" },
+    { label: "Lượt khám hôm nay", value: "86", icon: "📋", trend: "Đã hoàn thành: 42" },
+    { label: "Giao dịch Blockchain", value: "3,102", icon: "🔗", trend: "100% On-chain" },
+  ];
 
-  const handleLogout = () => {
-    localStorage.clear()
-    navigate("/")
-  }
+  // TODO (Backend): Gọi API lấy danh sách log hoạt động/nhật ký mới nhất
+  const recentActivities = [
+    { time: "10:24", text: "BS. Nguyễn Thị Hoa vừa tạo hồ sơ mới cho BN005" },
+    { time: "09:15", text: "Lễ tân đã thêm bệnh nhân mới: Trần Thị Bình" },
+    { time: "08:30", text: "Ca trực sáng bắt đầu với 15 bác sĩ sẵn sàng" },
+  ];
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F4F7FB", fontFamily: "'Segoe UI', Arial, sans-serif" }}>
-      {/* Header */}
-      <div style={{ background: PRIMARY, color: "#fff", padding: "14px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontWeight: 700, fontSize: 18 }}>🏥 VNmedID — Admin</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <span style={{ fontSize: 14 }}>🔑 {fullName}</span>
-          <button
-            onClick={handleLogout}
-            style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "6px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13 }}
-          >
-            Đăng xuất
-          </button>
-        </div>
+    <div className="space-y-6">
+      {/* 1. KHU VỰC TIÊU ĐỀ (HEADER) */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-800">Xin chào, {fullName} 👋</h2>
+        <p className="text-slate-500 text-sm mt-1">Tổng quan hoạt động bệnh viện hôm nay</p>
       </div>
 
-      <div style={{ padding: "32px" }}>
-        {/* Tiêu đề */}
-        <div style={{ marginBottom: 28 }}>
-          <h2 style={{ color: PRIMARY, margin: 0 }}>Xin chào, {fullName} 🔑</h2>
-          <p style={{ color: "#5F6B7A", marginTop: 4 }}>Quản lý toàn bộ người dùng và phân quyền</p>
-        </div>
-
-        {/* Stat cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 32 }}>
-          {[
-            { icon: "👥", label: "Tổng bệnh nhân", value: mockPatientList.length },
-            { icon: "🩺", label: "Tổng bác sĩ", value: mockDoctorList.length },
-            { icon: "📋", label: "Lượt khám hôm nay", value: "7" },
-            { icon: "🔗", label: "Giao dịch blockchain", value: "24" },
-          ].map(card => (
-            <div key={card.label} style={{ background: "#fff", borderRadius: 14, padding: "24px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>{card.icon}</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: PRIMARY }}>{card.value}</div>
-              <div style={{ fontSize: 13, color: "#5F6B7A", marginTop: 4 }}>{card.label}</div>
+      {/* 2. KHU VỰC THẺ THỐNG KÊ (STAT CARDS) */}
+      {/* CSS Grid: Tự động chia 1 cột trên mobile, 2 cột trên tablet và 4 cột trên màn hình lớn */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, idx) => (
+          <div key={idx} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-12 h-12 rounded-xl bg-violet-50 flex items-center justify-center text-2xl">
+                {stat.icon}
+              </div>
             </div>
-          ))}
+            <div>
+              <p className="text-slate-500 text-sm font-medium">{stat.label}</p>
+              <p className="text-3xl font-bold text-slate-800 mt-1">{stat.value}</p>
+              {/* Badge hiển thị xu hướng (Trend/Ghi chú nhỏ) */}
+              <p className="text-xs text-violet-600 font-semibold mt-2 bg-violet-50 inline-block px-2 py-1 rounded-md">
+                {stat.trend}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 3. KHU VỰC WIDGET BỔ SUNG (SYSTEM STATUS & TIMELINE) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* 3.1. Widget Trạng thái Hệ thống Blockchain (Chiếm 2/3 không gian lưới) */}
+        <div className="col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+           <div className="flex items-center justify-between mb-6">
+             <h3 className="font-bold text-slate-800 text-lg">Trạng thái Hệ thống Blockchain</h3>
+             {/* Nút báo hiệu trạng thái mạng lưới (Mô phỏng đèn tín hiệu Web3) */}
+             <span className="flex items-center gap-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+               Sepolia Testnet: Đang hoạt động
+             </span>
+           </div>
+           
+           <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <p className="text-sm font-medium text-slate-500 mb-1">IPFS Node</p>
+                <p className="font-semibold text-slate-700">Đã kết nối (Latency: 45ms)</p>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <p className="text-sm font-medium text-slate-500 mb-1">Smart Contracts</p>
+                <p className="font-semibold text-slate-700 text-sm truncate">0x7a250d5630...88d (HealthRecord)</p>
+              </div>
+           </div>
         </div>
 
-        {/* 2 bảng cạnh nhau */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-          {/* Danh sách bác sĩ */}
-          <div style={{ background: "#fff", borderRadius: 14, padding: "24px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
-            <h3 style={{ color: PRIMARY, marginTop: 0 }}>🩺 Danh sách bác sĩ</h3>
-            {mockDoctorList.map((d, i) => (
-              <div key={d._id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: i < mockDoctorList.length - 1 ? "1px solid #F0F0F0" : "none" }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{d.fullName}</div>
-                  <div style={{ fontSize: 12, color: "#5F6B7A" }}>{d.specialty}</div>
+        {/* 3.2. Widget Hoạt động gần đây (Chiếm 1/3 không gian, hiển thị dạng Timeline dọc) */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <h3 className="font-bold text-slate-800 text-lg mb-4">Hoạt động gần đây</h3>
+          <div className="space-y-4">
+            {recentActivities.map((act, i) => (
+              <div key={i} className="flex gap-3">
+                {/* Trục dọc của Timeline */}
+                <div className="flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 rounded-full bg-violet-400 mt-1"></div>
+                  {/* Ẩn đường kẻ dọc nối tiếp ở phần tử cuối cùng của mảng */}
+                  {i !== recentActivities.length - 1 && <div className="w-0.5 h-full bg-slate-100 my-1"></div>}
                 </div>
-                <span style={{ background: PRIMARY_LIGHT, color: PRIMARY, fontSize: 11, padding: "3px 10px", borderRadius: 20, alignSelf: "center" }}>{d.licenseNumber}</span>
+                {/* Nội dung chi tiết của hoạt động */}
+                <div>
+                  <p className="text-xs font-semibold text-violet-600 mb-0.5">{act.time}</p>
+                  <p className="text-sm text-slate-600">{act.text}</p>
+                </div>
               </div>
             ))}
           </div>
-
-          {/* Danh sách bệnh nhân */}
-          <div style={{ background: "#fff", borderRadius: 14, padding: "24px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
-            <h3 style={{ color: PRIMARY, marginTop: 0 }}>👥 Danh sách bệnh nhân</h3>
-            {mockPatientList.map((p, i) => (
-              <div key={p._id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: i < mockPatientList.length - 1 ? "1px solid #F0F0F0" : "none" }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{p.fullName}</div>
-                  <div style={{ fontSize: 12, color: "#5F6B7A" }}>{p.phone}</div>
-                </div>
-                <span style={{ background: "#E6F9F0", color: "#0F6E56", fontSize: 11, padding: "3px 10px", borderRadius: 20, alignSelf: "center" }}>{p.gender}</span>
-              </div>
-            ))}
-          </div>
         </div>
+
       </div>
     </div>
-  )
+  );
 }
