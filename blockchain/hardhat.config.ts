@@ -40,4 +40,10 @@ export default defineConfig({
       accounts: SEPOLIA_PRIVATE_KEY ? [SEPOLIA_PRIVATE_KEY] : [],
     },
   },
+<<<<<<< HEAD
+=======
+  paths: {
+    sources: "./contract",
+  },
+>>>>>>> ecfb1d16f6a2a29a62284c5ad8cb6d93043e6a6d
 });

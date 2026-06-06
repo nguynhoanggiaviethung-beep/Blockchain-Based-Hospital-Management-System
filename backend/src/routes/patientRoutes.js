@@ -32,6 +32,11 @@ router.put('/:id/health-profile', xacThucToken, phanQuyen('patient', 'admin'), c
 // --------------------------------------------------------------------------
 router.put('/:id/medical-assessment', xacThucToken, phanQuyen('doctor', 'admin'), capNhatKhamBenhChuyenMon);
 
+router.get('/me', xacThucToken, phanQuyen('patient', 'admin', 'doctor'), (req, res, next) => {
+    // Ép cái ID giải mã từ Token vào params để dùng chung hàm getPatientById mà không cần viết lại code
+    req.params.id = req.user.id; 
+    next();
+}, getPatientById);
 
 // [GET] Lấy 1 bệnh nhân theo ID — Admin + Doctor + Patient (Đoạn này thêm 'patient' để bệnh nhân tự xem hồ sơ của mình nhé)
 router.get('/:id', xacThucToken, phanQuyen('admin', 'doctor', 'patient'), getPatientById);

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import logo from "../assets/logoVNMedID.png";
 import RegisterPatientForm from "./RegisterPatientForm";
+import { mapBackendToFrontend } from '../utils/doctorMapper.js';
 
 const api = axios.create({ baseURL: "http://localhost:5000/api/v1" });
 
@@ -122,6 +123,7 @@ function LoginForm() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setErrors({}); setLoading(true);
     try {
+<<<<<<< HEAD
       const apiRole = ROLE_MAP_API[role];
       const response = await api.post("/auth/login", { email, password, role: apiRole });
       const token = response.data?.data?.token || response.data?.token;
@@ -136,6 +138,73 @@ function LoginForm() {
       setTimeout(() => navigate(roleRedirect[userRole] || "/"), 1000);
     } catch (error) {
       const msg = error.response?.data?.message || error.message || "Đăng nhập thất bại!";
+=======
+      // 1. Map role tiếng Việt sang tiếng Anh để gửi lên BE
+      const roleMap = { "Bệnh nhân": "patient", "Bác sĩ": "doctor", "Admin": "admin" };
+      const response = await api.post("/auth/login", { email, password, role: roleMap[role] });
+      
+      // Đọc an toàn cấu trúc data trả về từ Backend
+      const loginData = response.data?.data || response.data;
+      const token = loginData?.token;
+      const userRole = loginData?.role;
+
+      if (!token) {
+        throw new Error("Không nhận được mã xác thực (Token) từ hệ thống!");
+      }
+
+      // 2. Lưu token và thông tin nhận diện cốt lõi
+      localStorage.setItem("token", token);
+      localStorage.setItem("userRole", userRole);
+      localStorage.setItem("userId", loginData?.userId || loginData?._id || "");
+
+      // 3. Phân tách và lưu trữ thông tin hiển thị theo vai trò cá nhân
+      if (userRole === "doctor") {
+        // Thử chạy qua hàm map tài liệu bác sĩ nếu có cấu trúc mapper
+        let doctorName = "Bác sĩ VNmedID";
+        let doctorSpecialty = "Da liễu";
+        let doctorLicense = "BS-123450";
+
+        if (typeof mapBackendToFrontend === "function") {
+          try {
+            const mapped = mapBackendToFrontend(loginData);
+            if (mapped) {
+              doctorName = mapped.fullName || doctorName;
+              doctorSpecialty = mapped.specialty || doctorSpecialty;
+              doctorLicense = mapped.licenseNumber || doctorLicense;
+            }
+          } catch (mapErr) {
+            console.warn("Lưu ý: Không thể map dữ liệu profile bác sĩ, chuyển sang đọc trực tiếp.");
+          }
+        }
+
+        // Ưu tiên đọc trực tiếp từ key tiếng Việt/tiếng Anh có sẵn trong loginData phòng khi Backend đã gộp dữ liệu
+        doctorName = loginData?.["Họ và tên"] || loginData?.fullName || loginData?.email?.split('@')[0] || doctorName;
+        doctorSpecialty = loginData?.["Chuyên Khoa"] || loginData?.specialty || doctorSpecialty;
+        doctorLicense = loginData?.["Mã Bác sĩ"] || loginData?.["Giấy phép hành nghề"] || loginData?.licenseNumber || doctorLicense;
+
+        // Lưu thông tin sạch vào LocalStorage để DoctorDashboard lấy trực tiếp ra xài
+        localStorage.setItem("fullName", doctorName);
+        localStorage.setItem("chuyenKhoa", doctorSpecialty);
+        localStorage.setItem("maBacSi", doctorLicense);
+      } else {
+        // Nếu là bệnh nhân hoặc admin
+        const patientName = loginData?.fullName || loginData?.["Họ và tên"] || loginData?.email?.split('@')[0] || "Người dùng VNmedID";
+        localStorage.setItem("fullName", patientName);
+      }
+
+      setSuccess(true);
+
+      const roleRedirect = {
+        patient: "/dashboard/patient",
+        doctor: "/dashboard/doctor",
+        admin: "/dashboard/admin",
+      };
+      
+      setTimeout(() => navigate(roleRedirect[userRole] || "/"), 1000);
+    } catch (error) {
+      console.error("Lỗi xử lý đăng nhập:", error);
+      const msg = error.response?.data?.message || error.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản, mật khẩu!";
+>>>>>>> e7c95ccc407151f58352ceaa695cf480dcd46000
       setErrors({ general: msg });
     } finally { setLoading(false); }
   };
@@ -249,7 +318,7 @@ function RegisterForm() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setErrors({}); setLoading(true);
     try {
-      await api.post("/auth/register", { fullName, email, phone, cccd, dob, gender, password, role: "patient" });
+      await api.post("/auth/register", { fullName, email, phone, citizenId: cccd, dob, gender, password, role: "patient" });
       setSuccess(true);
     } catch (error) {
       const msg = error.response?.data?.message || error.message || "Đăng ký thất bại!";

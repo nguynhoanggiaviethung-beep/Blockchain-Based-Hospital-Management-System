@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 // Import middleware bạn vừa viết
 const { xacThucToken, phanQuyen } = require('../middleware/authMiddleware');
+const { grantAccess, getAccessList, revokeAccess } = require('../controllers/accessController');
 
 // Route này ai đăng nhập cũng vào được
 router.get('/profile', xacThucToken, (req, res) => {
@@ -19,5 +20,13 @@ router.delete('/delete-record/:id', xacThucToken, phanQuyen('admin'), (req, res)
     // Code xóa hồ sơ
     res.json({ message: "Admin đã xóa hồ sơ." });
 });
+// Cấp quyền bác sĩ xem hồ sơ bệnh nhân — Admin
+router.post('/grant', xacThucToken, phanQuyen('admin'), grantAccess);
+
+// Xem danh sách bác sĩ có quyền — Admin + Patient
+router.get('/:patientId', xacThucToken, phanQuyen('admin', 'patient'), getAccessList);
+
+// Thu hồi quyền — Admin
+router.delete('/revoke', xacThucToken, phanQuyen('admin'), revokeAccess);
 
 module.exports = router;

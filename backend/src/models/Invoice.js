@@ -2,7 +2,9 @@ const mongoose = require('mongoose');
 
 const invoiceSchema = new mongoose.Schema({
   invoiceId:     { type: String, required: true, unique: true },
-  amount:        { type: Number },
+  patientId:     { type: String, required: true },  
+  visitId:       { type: String },                   
+  amount:        { type: Number, required: true },
   txHash:        { type: String },
   paymentStatus: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending' }
 }, { timestamps: true });

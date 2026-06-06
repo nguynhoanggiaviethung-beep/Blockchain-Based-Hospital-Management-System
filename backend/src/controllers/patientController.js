@@ -1,40 +1,91 @@
-// src/controllers/patientController.js
+// API Format/src/controllers/patientController.js
 // Module 2 — Patient CRUD API
 
 const Patient = require('../models/Patient');
+const mongoose = require('mongoose'); 
+const bcrypt = require('bcrypt');     
 
 // ==========================================
 // POST /api/v1/patients
-// Tạo bệnh nhân mới — admin + doctor + patient
+// Tạo bệnh nhân mới — Đồng bộ sang bảng 'users' để đăng nhập được liền
 // ==========================================
 const createPatient = async (req, res) => {
     try {
-        const { fullName, dob, gender, phone, address, citizenId } = req.body;
+        const { fullName, dob, gender, phone, address, citizenId, email, password, walletAddress } = req.body;
 
-        // Kiểm tra citizenId đã tồn tại chưa
-        const daCoBenh = await Patient.findOne({ citizenId });
-        if (daCoBenh) {
+        // 1. Kiểm tra các trường bắt buộc
+        if (!fullName || !citizenId || !email || !password) {
             return res.status(400).json({
                 success: false,
-                message: 'Số CCCD này đã được đăng ký trong hệ thống'
+                message: 'Vui lòng nhập đầy đủ các trường bắt buộc (Họ tên, CCCD, Email, Mật khẩu)!'
             });
         }
 
-        // Tạo bệnh nhân mới
-        const benhNhanMoi = await Patient.create({
-            fullName, dob, gender, phone, address, citizenId
+        const db = mongoose.connection.db;
+        if (!db) {
+            return res.status(500).json({ success: false, message: 'Database chưa sẵn sàng!' });
+        }
+
+        // 2. Kiểm tra trùng lặp (CCCD bên bảng patients và Email bên bảng users)
+        const daCoBenh = await Patient.findOne({ citizenId });
+        const daCoEmail = await db.collection('users').findOne({ email });
+
+        if (daCoBenh || daCoEmail) {
+            return res.status(400).json({
+                success: false,
+                message: 'Số CCCD hoặc Địa chỉ Email này đã được đăng ký trên hệ thống!'
+            });
+        }
+
+        // 3. Mã hóa mật khẩu đăng nhập cho bệnh nhân
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // 4. BƯỚC CHỐT: ÉP LƯU VÀO 2 BẢNG ĐỒNG THỜI BẰNG CHUNG 1 ID
+        const commonId = new mongoose.Types.ObjectId();
+
+        // Bước 4.1: Ép lưu thông tin đăng nhập vào collection 'users'
+        await db.collection('users').insertOne({
+            _id: commonId,
+            fullName,
+            email,
+            password: hashedPassword,
+            role: 'patient', 
+            walletAddress: walletAddress || '',
+            createdAt: new Date(),
+            updatedAt: new Date()
         });
+        console.log(`✅ Đã đồng bộ tài khoản đăng nhập bên bảng users: ${commonId}`);
+
+        // Bước 4.2: Ép lưu thông tin hành chính vào collection 'patients' với CÙNG MÃ ID
+        await db.collection('patients').insertOne({
+            _id: commonId, 
+            fullName,
+            dob,
+            gender,
+            phone,
+            address,
+            citizenId,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+        console.log(`✅ Đã đồng bộ thông tin hồ sơ bên bảng patients: ${commonId}`);
 
         return res.status(201).json({
             success: true,
-            message: 'Tạo hồ sơ bệnh nhân thành công!',
-            data: { patientId: benhNhanMoi._id }
+            message: 'Đăng ký tài khoản và tạo hồ sơ bệnh nhân thành công!',
+            data: { 
+                patientId: commonId,
+                fullName,
+                email
+            }
         });
 
     } catch (error) {
+        console.error("❌ Lỗi tại createPatient:", error);
         return res.status(500).json({
             success: false,
-            message: 'Lỗi hệ thống',
+            message: 'Lỗi hệ thống khi tạo bệnh nhân',
             error: error.message
         });
     }
@@ -46,7 +97,6 @@ const createPatient = async (req, res) => {
 // ==========================================
 const getAllPatients = async (req, res) => {
     try {
-        // Hỗ trợ tìm kiếm theo tên hoặc CCCD
         const { search } = req.query;
         let filter = {};
 
@@ -86,26 +136,24 @@ const getAllPatients = async (req, res) => {
 // ==========================================
 const getPatientById = async (req, res) => {
     try {
-        const benhNhan = await Patient.findById(req.params.id);
+        const db = mongoose.connection.db;
+        const { ObjectId } = mongoose.Types;
 
-        if (!benhNhan) {
-            return res.status(404).json({
-                success: false,
-                message: 'Không tìm thấy bệnh nhân này'
-            });
+        if (!ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ success: false, message: 'ID không hợp lệ' });
         }
 
-        return res.status(200).json({
-            success: true,
-            data: benhNhan
-        });
+        const benhNhan = await db.collection('patients')
+            .findOne({ _id: new ObjectId(req.params.id) });
+
+        if (!benhNhan) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy bệnh nhân này' });
+        }
+
+        return res.status(200).json({ success: true, data: benhNhan });
 
     } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: 'Lỗi hệ thống',
-            error: error.message
-        });
+        return res.status(500).json({ success: false, message: 'Lỗi hệ thống', error: error.message });
     }
 };
 
@@ -175,44 +223,40 @@ const deletePatient = async (req, res) => {
 };
 
 // ==========================================
-// PUT /api/v1/patients/:id/health-profile
-// LUỒNG 1: Bệnh nhân tự cập nhật chỉ số sức khỏe cá nhân (Hoặc Admin nhập hộ)
-// ==========================================
 const capNhatHoSoSucKhoe = async (req, res) => {
     try {
         const { nhomMau, tienSuBenh, diUng, trieuChung, ghiChu } = req.body;
+        const db = mongoose.connection.db;
+        const { ObjectId } = mongoose.Types;
 
-        const benhNhan = await Patient.findByIdAndUpdate(
-            req.params.id,
-            { nhomMau, tienSuBenh, diUng, trieuChung, ghiChu },
-            { new: true }
+        if (!ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ success: false, message: 'ID không hợp lệ' });
+        }
+
+        const result = await db.collection('patients').findOneAndUpdate(
+            { _id: new ObjectId(req.params.id) },
+            { $set: { nhomMau, tienSuBenh, diUng, trieuChung, ghiChu, updatedAt: new Date() } },
+            { returnDocument: 'after' }
         );
 
-        if (!benhNhan) {
-            return res.status(404).json({
-                success: false,
-                message: 'Không tìm thấy bệnh nhân!'
-            });
+        if (!result) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy bệnh nhân!' });
         }
 
         return res.status(200).json({
             success: true,
-            message: 'Cập nhật hồ sơ sức khỏe cá nhân thành công!',
-            data: benhNhan
+            message: 'Cập nhật hồ sơ sức khỏe thành công!',
+            data: result
         });
 
     } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: 'Lỗi hệ thống',
-            error: error.message
-        });
+        return res.status(500).json({ success: false, message: 'Lỗi hệ thống', error: error.message });
     }
 };
 
 // ==========================================
 // PUT /api/v1/patients/:id/medical-assessment
-// LUỒNG 2: Bác sĩ cập nhật kết quả khám bệnh chuyên môn (Bệnh nhân chỉ được xem)
+// LUỒNG 2: Bác sĩ cập nhật kết quả khám bệnh chuyên môn
 // ==========================================
 const capNhatKhamBenhChuyenMon = async (req, res) => {
     try {
@@ -225,7 +269,6 @@ const capNhatKhamBenhChuyenMon = async (req, res) => {
             });
         }
 
-        // Lưu thông tin chuyên môn vào trường medicalAssessment riêng biệt để không bị đè dữ liệu cũ
         const benhNhan = await Patient.findByIdAndUpdate(
             req.params.id,
             {
@@ -234,7 +277,7 @@ const capNhatKhamBenhChuyenMon = async (req, res) => {
                         chanDoanChuyenMon,
                         ghiChuBacSi,
                         huongDieuTri,
-                        updatedBy: req.user ? req.user.id : null, // Lưu ID bác sĩ thực hiện từ Token
+                        updatedBy: req.user ? req.user.id : null, 
                         updatedAt: new Date()
                     }
                 }
@@ -272,5 +315,5 @@ module.exports = {
     updatePatient,
     deletePatient,
     capNhatHoSoSucKhoe,
-    capNhatKhamBenhChuyenMon // Đã được khai báo đầy đủ ở đây
+    capNhatKhamBenhChuyenMon 
 };
